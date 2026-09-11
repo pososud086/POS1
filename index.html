@@ -24,12 +24,114 @@
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; }
     .modal-content { background: var(--panel); padding: 30px; border-radius: 12px; width: 90%; max-width: 500px; text-align: center; }
     .modal-btn { padding: 15px 30px; font-size: 20px; margin: 10px; border-radius: 8px; border: none; cursor: pointer; }
+
+    /* เพิ่มปุ่มตั้งค่าและฟอร์ม */
+.setting-btn { background: none; border: none; color: white; font-size: 28px; cursor: pointer; float: right; margin-top: -4px; }
+.settings-section { background: #2a2a2a; padding: 15px; margin-bottom: 15px; border-radius: 8px; text-align: left; }
+.settings-section h3 { margin-top: 0; color: var(--accent); border-bottom: 1px solid #444; padding-bottom: 5px; }
+.input-group { margin-bottom: 10px; }
+.input-group label { display: block; margin-bottom: 5px; font-size: 14px; color: #ccc; }
+.input-field { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #444; background: #121212; color: white; font-size: 16px; box-sizing: border-box; }
+.save-btn { background-color: #4CAF50; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-size: 16px; cursor: pointer; width: 100%; margin-top: 5px;}
     
     canvas { display: none; } /* ซ่อน Canvas สำหรับปริ้น */
   </style>
 </head>
 <body>
-  <div class="header" id="shop-header">POS ร้านเติมมัทฉะ</div>
+  <!-- เปลี่ยน Header เดิมเป็นแบบนี้ -->
+  <div class="header" id="shop-header">
+    POS ร้านเติมมัทฉะ
+    <button class="setting-btn" onclick="openSettings()">⚙️</button>
+  </div>
+
+  <!-- หน้าต่างตั้งค่า (Settings Modal) -->
+  <div class="modal" id="settings-modal" style="display:none; align-items:flex-start; padding-top:20px; overflow-y:auto;">
+    <div class="modal-content" style="width: 95%; max-width: 600px; text-align: left;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h2 style="margin: 0; color: var(--primary);">⚙️ ตั้งค่าร้านค้า</h2>
+        <button onclick="closeSettings()" style="background:red; color:white; border:none; padding:10px 15px; border-radius:6px; cursor:pointer;">ปิด (X)</button>
+      </div>
+
+      <!-- 1. ตั้งค่าร้านและปริ้นเตอร์ -->
+      <div class="settings-section">
+        <h3>1. ตั้งค่าระบบทั่วไป</h3>
+        <div class="input-group">
+          <label>URL โลโก้ร้าน:</label>
+          <input type="text" id="set-logo" class="input-field" placeholder="https://...">
+        </div>
+        <div class="input-group">
+          <label>เครื่องปริ้นเริ่มต้น:</label>
+          <select id="set-printer" class="input-field">
+            <option value="Bluetooth">Bluetooth (มือถือ/แท็บเล็ต)</option>
+            <option value="USB">USB (คอมพิวเตอร์)</option>
+          </select>
+        </div>
+        <button class="save-btn" onclick="saveGeneralSettings()">บันทึกการตั้งค่าทั่วไป</button>
+      </div>
+
+      <!-- 2. หมวดหมู่ -->
+      <div class="settings-section">
+        <h3>2. สร้างหมวดหมู่เมนู</h3>
+        <div class="input-group">
+          <label>ชื่อหมวดหมู่ (เช่น กาแฟ, ชาเขียว):</label>
+          <input type="text" id="set-cat-name" class="input-field">
+        </div>
+        <button class="save-btn" onclick="saveCategory()">+ เพิ่มหมวดหมู่</button>
+      </div>
+
+      <!-- 3. เมนู -->
+      <div class="settings-section">
+        <h3>3. สร้างเมนูใหม่</h3>
+        <div class="input-group">
+          <label>เลือกหมวดหมู่:</label>
+          <select id="set-menu-cat" class="input-field"></select>
+        </div>
+        <div class="input-group">
+          <label>ชื่อเมนู:</label>
+          <input type="text" id="set-menu-name" class="input-field">
+        </div>
+        <div class="input-group">
+          <label>ราคา (บาท):</label>
+          <input type="number" id="set-menu-price" class="input-field">
+        </div>
+        <div class="input-group" style="display: flex; align-items: center; gap: 10px;">
+          <input type="checkbox" id="set-menu-acc" style="width: 25px; height: 25px;">
+          <label style="margin: 0;">นับสะสมจำนวนแก้ว (10 แถม 1)</label>
+        </div>
+        <button class="save-btn" onclick="saveMenu()" style="margin-top: 15px;">+ เพิ่มเมนู</button>
+      </div>
+
+      <!-- 4. ตัวเลือกเสริม (Add-on) -->
+      <div class="settings-section">
+        <h3>4. สร้างตัวเลือกเสริม (Topping/ความหวาน)</h3>
+        <div class="input-group">
+          <label>ผูกกับเมนู:</label>
+          <select id="set-addon-menu" class="input-field"></select>
+        </div>
+        <div class="input-group">
+          <label>ชื่อตัวเลือก (เช่น หวานน้อย, ไข่มุก):</label>
+          <input type="text" id="set-addon-name" class="input-field">
+        </div>
+        <div class="input-group">
+          <label>ราคาบวกเพิ่ม (บาท, หากฟรีให้ใส่ 0):</label>
+          <input type="number" id="set-addon-price" class="input-field" value="0">
+        </div>
+        <div class="input-group">
+          <label>รูปแบบการเลือก:</label>
+          <select id="set-addon-type" class="input-field">
+            <option value="Single">เลือกได้แค่ 1 อย่าง (Radio)</option>
+            <option value="Multiple">เลือกได้หลายอย่าง (Checkbox)</option>
+          </select>
+        </div>
+        <div class="input-group" style="display: flex; align-items: center; gap: 10px;">
+          <input type="checkbox" id="set-addon-req" style="width: 25px; height: 25px;">
+          <label style="margin: 0;">บังคับเลือก (จำเป็นต้องเลือกก่อนชำระเงิน)</label>
+        </div>
+        <button class="save-btn" onclick="saveAddon()" style="margin-top: 15px;">+ เพิ่มตัวเลือกเสริม</button>
+      </div>
+
+    </div>
+  </div>
   
   <div class="layout">
     <div class="menu-area">
