@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>Customer Display</title>
+  <style>
+    body { background-color: #121212; color: white; font-family: sans-serif; padding: 40px; }
+    h1 { color: #ff9800; text-align: center; font-size: 48px; }
+    .item { font-size: 32px; display: flex; justify-content: space-between; border-bottom: 2px solid #333; padding: 20px 0; }
+    .total { font-size: 64px; color: #d32f2f; font-weight: bold; text-align: right; margin-top: 40px; }
+  </style>
+</head>
+<body>
+  <h1>รายการของท่าน</h1>
+  <div id="display-items"></div>
+  <div class="total">รวมสุทธิ: <span id="display-total">0</span> ฿</div>
+
+  <script>
+    // ดึงข้อมูลจาก LocalStorage แบบเรียลไทม์
+    window.addEventListener('storage', function(e) {
+      if (e.key === 'pos_cart_sync') {
+        const data = JSON.parse(e.newValue);
+        let html = '';
+        data.items.forEach(item => {
+          html += `<div class="item"><span>${item.name} x${item.qty}</span><span>${item.price * item.qty} ฿</span></div>`;
+        });
+        if (data.discount > 0) {
+          html += `<div class="item" style="color:#4caf50;"><span>ส่วนลด</span><span>-${data.discount} ฿</span></div>`;
+        }
+        document.getElementById('display-items').innerHTML = html;
+        document.getElementById('display-total').innerText = data.total;
+      }
+    });
+  </script>
+</body>
+</html>
