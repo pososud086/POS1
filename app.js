@@ -4,6 +4,24 @@ let db = { categories: [], menus: [], addons: [] };
 let accumulateCups = 0;
 let discount = 0;
 
+// ฟังก์ชันตัวช่วยสำหรับส่งข้อมูลไป Google Apps Script เพื่อแก้ปัญหา CORS
+async function postData(action, payload) {
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      redirect: 'follow', // จำเป็นต้องมีเพื่อให้รองรับการส่งต่อ URL ของ Google
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8", // ต้องเป็น text/plain เท่านั้นเพื่อเลี่ยง CORS
+      },
+      body: JSON.stringify({ action: action, payload: payload })
+    });
+    return await response.json();
+  } catch (error) {
+    console.error("Fetch Error:", error);
+    throw error;
+  }
+}
+
 // โหลดข้อมูลตอนเปิดหน้าเว็บ
 window.onload = async () => {
   const res = await fetch(API_URL + "?action=getData");
