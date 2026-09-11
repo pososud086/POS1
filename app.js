@@ -110,18 +110,19 @@ async function promptMember() {
   const phone = prompt("กรุณากรอกเบอร์โทรสมาชิก:");
   if (!phone) return;
   
-  const res = await fetch(API_URL, {
-    method: 'POST',
-    body: JSON.stringify({ action: "checkMember", payload: phone })
-  });
-  const result = await res.json();
-  
-  if (result.status === "success") {
-    alert(result.message);
-    applyFreeCupAuto();
-    selectPayment();
-  } else {
-    alert(result.message);
+  try {
+    // เปลี่ยนมาใช้ฟังก์ชัน postData
+    const result = await postData("checkMember", phone);
+    
+    if (result.status === "success") {
+      alert(result.message);
+      applyFreeCupAuto();
+      selectPayment();
+    } else {
+      alert(result.message);
+    }
+  } catch(e) {
+    alert("เกิดข้อผิดพลาดในการตรวจสอบสมาชิก");
   }
 }
 
@@ -133,36 +134,32 @@ function selectPayment() {
 async function completeOrder(method) {
   let finalTotal = parseInt(document.getElementById('total-price').innerText);
   
-  // คำนวณแต้มที่ได้ (หักแก้วฟรีและแต้มที่ใช้ไป)
   let earnedCups = accumulateCups;
   if (discount > 0) earnedCups = accumulateCups > 11 ? accumulateCups - 11 : 0; 
   
-  // สร้าง Code หากมีแต้มสะสม
   let codeData = { code: "", expiryDate: "", cups: 0 };
-  if (earnedCups > 0) {
-    const resCode = await fetch(API_URL, {
-      method: 'POST', body: JSON.stringify({ action: "generateCode", payload: earnedCups })
-    });
-    codeData = await resCode.json();
-  }
-
-  // บันทึกออเดอร์
-  const orderData = { total: finalTotal, discount: discount, paymentMethod: method, items: cart };
-  const resOrder = await fetch(API_URL, {
-    method: 'POST', body: JSON.stringify({ action: "saveOrder", payload: orderData })
-  });
-  const orderResult = await resOrder.json();
-
-  alert('บันทึกออเดอร์ ' + orderResult.orderId + ' สำเร็จ!');
   
-  // ปริ้นใบเสร็จ (เรียกใช้ฟังก์ชัน handlePrint ที่คุณให้มา โดยโยน codeData เข้าไป)
-  if (codeData.code) {
-    await handlePrint(codeData); 
+  try {
+    if (earnedCups > 0) {
+      // เปลี่ยนมาใช้ฟังก์ชัน postData
+      codeData = await postData("generateCode", earnedCups);
+    }
+
+    const orderData = { total: finalTotal, discount: discount, paymentMethod: method, items: cart };
+    // เปลี่ยนมาใช้ฟังก์ชัน postData
+    const orderResult = await postData("saveOrder", orderData);
+
+    alert('บันทึกออเดอร์ ' + orderResult.orderId + ' สำเร็จ!');
+    
+    if (codeData.code) {
+      await handlePrint(codeData); 
+    }
+    
+    cart = []; discount = 0; updateCart();
+    document.getElementById('checkout-modal').style.display = 'none';
+  } catch(e) {
+    alert("เกิดข้อผิดพลาดในการบันทึกออเดอร์ ลองใหม่อีกครั้ง");
   }
-  
-  // รีเซ็ต
-  cart = []; discount = 0; updateCart();
-  document.getElementById('checkout-modal').style.display = 'none';
 }
 
 // --- ส่วนของระบบตั้งค่า (Settings) ---
@@ -198,20 +195,18 @@ function closeSettings() {
 // ฟังก์ชันกลางสำหรับส่งข้อมูลตั้งค่า
 async function sendConfig(payload) {
   try {
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: "saveConfig", payload: payload })
-    });
-    const result = await res.json();
+    // เปลี่ยนมาใช้ฟังก์ชัน postData
+    const result = await postData("saveConfig", payload);
+    
     if(result.status === "success") {
       alert("บันทึกข้อมูลสำเร็จ!");
       // รีโหลดข้อมูลจากฐานข้อมูลใหม่หลังบันทึก
       const freshRes = await fetch(API_URL + "?action=getData");
       db = await freshRes.json();
-      renderCategories(); // อัปเดตหน้าจอหลัก
+      renderCategories(); 
     }
   } catch(e) {
-    alert("เกิดข้อผิดพลาดในการบันทึก");
+    alert("เกิดข้อผิดพลาดในการบันทึกการตั้งค่า");
   }
 }
 
