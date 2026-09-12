@@ -10,16 +10,35 @@ let state = {
   selectedFreeCupOption: false,
   freeCupApplied: false,
   paymentMethod: null,
-  rewardableCupsCount: 0
+  rewardableCupsCount: 0,
+  activePendingMenu: null
 };
 
-// เริ่มต้นระบบ
 window.onload = async () => {
   await fetchInitialData();
   renderCategories();
   renderMenus();
 };
 
+// ==========================================
+// 1. ระบบสลับหน้าจอ (View Navigation)
+// ==========================================
+function switchView(viewName) {
+  document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
+  
+  if (viewName === 'pos') {
+    document.getElementById('view-pos').style.display = 'grid';
+  } else if (viewName === 'expense') {
+    document.getElementById('view-expense').style.display = 'block';
+  } else if (viewName === 'dashboard') {
+    document.getElementById('view-dashboard').style.display = 'block';
+    loadDashboardData();
+  }
+}
+
+// ==========================================
+// 2. ดึงข้อมูล & Render หน้าร้าน
+// ==========================================
 async function fetchInitialData() {
   try {
     const res = await fetch(`${GAS_API_URL}?action=getInitialData`);
@@ -31,7 +50,9 @@ async function fetchInitialData() {
       state.addons = json.data.addons || [];
       
       if (state.settings.logoUrl) {
-        document.getElementById('store-logo').src = state.settings.logoUrl;
+        const logoImg = document.getElementById('store-logo');
+        logoImg.src = state.settings.logoUrl;
+        logoImg.style.display = 'block';
       }
     }
   } catch (e) {
@@ -39,9 +60,82 @@ async function fetchInitialData() {
   }
 }
 
-// ลอจิกตะกร้าสินค้า & ส่งไปยัง Customer Facing Display (CFD) ผ่าน LocalStorage [2]
-function addToCart(menu) {
-  state.cart.push({ ...menu, selectedAddons: [] });
+function renderCategories() {
+  const catBar = document.getElementById('category-bar');
+  catBar.innerHTML = `<button class="btn-touch btn-warning" onclick="renderMenus()">ทั้งหมด</button>`;
+  state.categories.forEach(cat => {
+    catBar.innerHTML += `<button class="btn-touch" style="background:#333;" onclick="filterMenus('${cat.id}')">${cat.name}</button>`;
+  });
+}
+
+function renderMenus(catId = null) {
+  const grid = document.getElementById('menu-grid');
+  grid.innerHTML = '';
+  const items = catId ? state.menus.filter(m => m.categoryId === catId) : state.menus;
+  items.forEach(menu => {
+    grid.innerHTML += `
+      <div class="menu-card" onclick="openAddonModalForMenu('${menu.id}')">
+        <strong>${menu.name}</strong>
+        <p style="color:var(--accent-orange); margin-top:5px;">${menu.price} ฿</p>
+      </div>
+    `;
+  });
+}
+
+// ==========================================
+// 3. ระบบ Add-ons & ตะกร้าสินค้า
+// ==========================================
+function openAddonModalForMenu(menuId) {
+  const menu = state.menus.find(m => m.id === menuId);
+  state.activePendingMenu = menu;
+  
+  const menuAddons = state.addons.filter(a => a.menuId === menuId);
+  if (menuAddons.length === 0) {
+    addToCart(menu, []);
+    return;
+  }
+
+  document.getElementById('addon-menu-title').innerText = `ตัวเลือก: ${menu.name}`;
+  const container = document.getElementById('addon-list-container');
+  container.innerHTML = '';
+  
+  menuAddons.forEach(a => {
+    container.innerHTML += `
+      <label style="display:block; padding:10px; background:#2a2a2a; margin-bottom:8px; border-radius:8px;">
+        <input type="checkbox" class="addon-checkbox" value="${a.id}" data-price="${a.price}" data-name="${a.name}">
+        ${a.name} (+${a.price} ฿)
+      </label>
+    `;
+  });
+
+  document.getElementById('modal-addons').style.display = 'flex';
+}
+
+function confirmAddonSelection() {
+  const selectedAddons = [];
+  document.querySelectorAll('.addon-checkbox:checked').forEach(cb => {
+    selectedAddons.push({
+      name: cb.getAttribute('data-name'),
+      price: Number(cb.getAttribute('data-price'))
+    });
+  });
+
+  addToCart(state.activePendingMenu, selectedAddons);
+  closeAddonModal();
+}
+
+function closeAddonModal() {
+  document.getElementById('modal-addons').style.display = 'none';
+  state.activePendingMenu = null;
+}
+
+function addToCart(menu, selectedAddons) {
+  const addonTotal = selectedAddons.reduce((sum, a) => sum + a.price, 0);
+  state.cart.push({
+    ...menu,
+    selectedAddons,
+    finalPrice: menu.price + addonTotal
+  });
   updateCartUI();
 }
 
@@ -51,21 +145,24 @@ function updateCartUI() {
   let total = 0;
   state.rewardableCupsCount = 0;
 
-  state.cart.forEach((item, index) => {
-    total += item.price;
+  state.cart.forEach((item) => {
+    total += item.finalPrice;
     if (item.isRewardable) state.rewardableCupsCount++;
     
+    let addonText = item.selectedAddons.map(a => a.name).join(', ');
     container.innerHTML += `
-      <div style="display:flex; justify-between; margin-bottom: 8px;">
-        <span>${item.name}</span>
-        <span>${item.price} บาท</span>
+      <div style="border-bottom:1px solid #333; padding: 8px 0;">
+        <div style="display:flex; justify-content:space-between;">
+          <span>${item.name}</span>
+          <span>${item.finalPrice} ฿</span>
+        </div>
+        ${addonText ? `<small style="color:#aaa;">+ ${addonText}</small>` : ''}
       </div>
     `;
   });
 
   document.getElementById('cart-total').innerText = total;
 
-  // ส่ง Event สื่อสารกับหน้าจอ customer.html แบบ Real-time [2]
   localStorage.setItem('pos_cart_update', JSON.stringify({
     cart: state.cart,
     total: total,
@@ -73,34 +170,137 @@ function updateCartUI() {
   }));
 }
 
-// ปุ่มถัดไป & ลอจิกพิเศษถ้ายอดสั่งซื้อ >= 11 แก้ว [5]
+// ==========================================
+// 4. ระบบตั้งค่าร้านค้า (Settings Modal)
+// ==========================================
+function openSettingsModal() {
+  document.getElementById('set-logo-url').value = state.settings.logoUrl || '';
+  document.getElementById('set-printer-type').value = state.settings.printerType || 'Bluetooth';
+  document.getElementById('modal-settings').style.display = 'flex';
+}
+
+function closeSettingsModal() {
+  document.getElementById('modal-settings').style.display = 'none';
+}
+
+async function saveSettingsUI() {
+  const payload = {
+    action: 'saveSettings',
+    data: {
+      logoUrl: document.getElementById('set-logo-url').value,
+      printerType: document.getElementById('set-printer-type').value,
+      categories: state.categories,
+      menus: state.menus,
+      addons: state.addons
+    }
+  };
+
+  const res = await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify(payload) });
+  const json = await res.json();
+  alert(json.message || 'บันทึกเรียบร้อย');
+  closeSettingsModal();
+}
+
+// ==========================================
+// 5. ระบบบันทึกรายจ่าย
+// ==========================================
+async function saveExpenseUI() {
+  const title = document.getElementById('exp-title').value;
+  const amount = document.getElementById('exp-amount').value;
+  const category = document.getElementById('exp-category').value;
+  const note = document.getElementById('exp-note').value;
+
+  if (!title || !amount) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+
+  await fetch(GAS_API_URL, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'saveExpense',
+      data: { title, amount: Number(amount), category, note }
+    })
+  });
+
+  alert('บันทึกรายจ่ายสำเร็จ');
+  document.getElementById('exp-title').value = '';
+  document.getElementById('exp-amount').value = '';
+}
+
+// ==========================================
+// 6. แดชบอร์ด & รายงานภาษี PDF
+// ==========================================
+async function loadDashboardData() {
+  const start = document.getElementById('dash-start').value;
+  const end = document.getElementById('dash-end').value;
+
+  const res = await fetch(`${GAS_API_URL}?action=getDashboardData&startDate=${start}&endDate=${end}`);
+  const json = await res.json();
+  
+  if (json.status === 'success') {
+    let salesTotal = json.data.sales.reduce((sum, s) => sum + Number(s.net || 0), 0);
+    let expTotal = json.data.expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+
+    document.getElementById('dash-total-sales').innerText = `${salesTotal} ฿`;
+    document.getElementById('dash-total-exp').innerText = `${expTotal} ฿`;
+    document.getElementById('dash-net-profit').innerText = `${salesTotal - expTotal} ฿`;
+  }
+}
+
+function exportPDFReport(typeFilter) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  doc.setFontSize(18);
+  doc.text(`รายงานสรุปยอดขายสำหรับยื่นภาษี (${typeFilter})`, 14, 20);
+  doc.setFontSize(12);
+  doc.text(`วันที่พิมพ์: ${new Date().toLocaleDateString('th-TH')}`, 14, 30);
+
+  doc.autoTable({
+    startY: 40,
+    head: [['รายการ', 'ประเภทชำระเงิน', 'จำนวนเงิน (บาท)']],
+    body: [
+      ['ยอดขายรวม', typeFilter, document.getElementById('dash-total-sales').innerText]
+    ]
+  });
+
+  doc.save(`Tax-Report-${typeFilter}-${Date.now()}.pdf`);
+}
+
+// ==========================================
+// 7. ชำระเงิน Numpad & Checkout
+// ==========================================
 function openCheckoutModal() {
   if (state.cart.length === 0) return alert('กรุณาเลือกเมนูก่อน');
-
   document.getElementById('modal-checkout').style.display = 'flex';
   
-  // ลอจิกพิเศษ: หากสั่งซื้อ >= 11 แก้ว บังคับเลือกแก้วฟรี 1 แก้วทันที [5]
   if (state.rewardableCupsCount >= 11) {
-    alert('ยอดสั่งซื้อถึง 11 แก้ว ระบบปรับสิทธิ์แถมแก้วฟรีให้อัตโนมัติ 1 แก้ว');
+    alert('ยอดสั่งซื้อถึง 11 แก้ว ปรับสิทธิ์แถมฟรีให้อัตโนมัติ 1 แก้ว');
     state.freeCupApplied = true;
     selectFreeCupOption('use');
   }
 }
 
+function closeCheckoutModal() {
+  document.getElementById('modal-checkout').style.display = 'none';
+}
+
 function selectFreeCupOption(option) {
   state.selectedFreeCupOption = true;
-  
   if (option === 'use' && !state.freeCupApplied) {
     document.getElementById('modal-numpad').style.display = 'flex';
   } else {
-    // เปิดใช้งานปุ่มชำระเงิน [5]
     const paySec = document.getElementById('payment-section');
     paySec.style.opacity = '1';
     paySec.style.pointerEvents = 'auto';
   }
 }
 
-// ตรวจสอบสมาชิกเบอร์โทร [5]
+function pressNumpad(num) {
+  document.getElementById('phone-input').value += num;
+}
+function clearNumpad() {
+  document.getElementById('phone-input').value = '';
+}
+
 async function submitPhoneCheck() {
   const phone = document.getElementById('phone-input').value;
   if (!phone) return;
@@ -109,11 +309,10 @@ async function submitPhoneCheck() {
   const json = await res.json();
   
   if (json.data && json.data.cups >= 10) {
-    alert(`พบเบอร์ ${phone} มีสะสม ${json.data.cups} แก้ว (ใช้สิทธิ์หัก 10 แก้ว)`);
+    alert(`พบเบอร์ ${phone} สะสม ${json.data.cups} แก้ว (ใช้สิทธิ์หัก 10 แก้ว)`);
     state.freeCupApplied = true;
     document.getElementById('modal-numpad').style.display = 'none';
     
-    // เปิดปุ่มชำระเงิน [5]
     const paySec = document.getElementById('payment-section');
     paySec.style.opacity = '1';
     paySec.style.pointerEvents = 'auto';
@@ -127,7 +326,6 @@ function selectPaymentMethod(method) {
   document.getElementById('btn-confirm-pay').style.display = 'inline-block';
 
   if (method === 'QR-CODE') {
-    // ส่งภาพ QR สแกนจ่ายไปยังจอฝั่งลูกค้า [2, 5]
     localStorage.setItem('pos_payment_qr', JSON.stringify({
       qrUrl: 'https://via.placeholder.com/300x300.png?text=PromptPay+QR',
       timestamp: Date.now()
@@ -135,14 +333,11 @@ function selectPaymentMethod(method) {
   }
 }
 
-// ปริ้นใบเสร็จ & เจนโค้ดสะสมแต้มท้ายบิล [5, 6]
 async function processPaymentAndPrint() {
-  // สุ่มโค้ดสะสมแต้ม 10 ตัวอักษร + จำนวนแก้วสะสม [5]
   const randomChars = Math.random().toString(36).substring(2, 12);
   const earnedCups = Math.max(0, state.rewardableCupsCount - (state.freeCupApplied ? 10 : 0));
   const loyaltyCode = `${randomChars}${String(earnedCups).padStart(2, '0')}`;
 
-  // บันทึกลง Member DB แผ่นงาน "โค้ด" [6]
   await fetch(GAS_API_URL, {
     method: 'POST',
     body: JSON.stringify({
@@ -155,7 +350,6 @@ async function processPaymentAndPrint() {
     })
   });
 
-  // บันทึกออเดอร์ลง Main DB [7]
   await fetch(GAS_API_URL, {
     method: 'POST',
     body: JSON.stringify({
@@ -172,12 +366,6 @@ async function processPaymentAndPrint() {
     })
   });
 
-  alert('บันทึกและออกใบเสร็จสำเร็จ โค้ดสะสมแต้มท้ายบิล: ' + loyaltyCode);
+  alert(`บันทึกสำเร็จ! โค้ดสะสมแต้มท้ายบิล: ${loyaltyCode}`);
   location.reload();
-}
-
-// ฟังก์ชันแปลงภาพเป็น ESC/POS Bluetooth [6]
-async function handlePrint(data) {
-  console.log("Printing via Bluetooth printer with data:", data);
-  // ESC/POS Canvas & Image Conversion Pipeline
 }
