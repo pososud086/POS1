@@ -1,3 +1,6 @@
+
+
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -9,42 +12,63 @@
         body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
         
         /* Layout */
-        .left-panel { flex: 7; display: flex; flex-direction: column; padding: 20px; border-right: 1px solid #333; }
-        .right-panel { flex: 3; display: flex; flex-direction: column; padding: 20px; background: var(--surface); position: relative; }
+        .left-panel { flex: 7; display: flex; flex-direction: column; padding: 20px; border-right: 1px solid #333; height: 100vh; box-sizing: border-box;}
+        .right-panel { flex: 3; display: flex; flex-direction: column; padding: 20px; background: var(--surface); position: relative; height: 100vh; box-sizing: border-box;}
         
         /* Header & Print Button */
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .btn-print-setup { background: #333; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; }
+        .header h2 { font-size: 1.8em; font-weight: 800; margin: 0; }
+        .btn-print-setup { background: #333; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 1.1em; font-weight: bold; transition: 0.3s; }
+        .btn-print-setup:hover { background: #555; }
         
         /* Categories & Menus */
-        .categories { display: flex; gap: 10px; overflow-x: auto; margin-bottom: 20px; padding-bottom: 10px; }
-        .cat-btn { background: #333; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; white-space: nowrap; transition: 0.3s; }
-        .cat-btn.active, .cat-btn:hover { background: var(--primary); }
-        
-        .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; overflow-y: auto; }
-        .menu-item { background: #2a2a2a; padding: 15px; border-radius: 12px; text-align: center; cursor: pointer; transition: 0.3s; border: 2px solid transparent; }
+        .menu-list-container { overflow-y: auto; flex-grow: 1; padding-right: 10px; }
+        /* Scrollbar styling */
+        .menu-list-container::-webkit-scrollbar { width: 8px; }
+        .menu-list-container::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+        .menu-list-container::-webkit-scrollbar-track { background: var(--bg); }
+
+        .category-section { margin-bottom: 30px; }
+        .category-title { font-size: 1.5em; font-weight: bold; color: var(--secondary); margin-bottom: 15px; border-bottom: 2px solid #333; padding-bottom: 5px; }
+
+        .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; }
+        .menu-item { background: #2a2a2a; padding: 20px; border-radius: 12px; text-align: center; cursor: pointer; transition: 0.3s; border: 2px solid transparent; }
         .menu-item:hover { border-color: var(--secondary); transform: translateY(-3px); }
-        .menu-price { color: var(--secondary); font-weight: bold; margin-top: 10px; }
+        .menu-name { font-size: 1.2em; font-weight: bold; margin-bottom: 10px;}
+        .menu-price { color: var(--secondary); font-size: 1.1em; font-weight: bold; }
 
         /* Cart */
-        .cart-list { flex: 1; overflow-y: auto; margin-bottom: 20px; }
-        .cart-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #444; }
-        .cart-item-info { flex: 1; }
-        .cart-addon { font-size: 0.8em; color: #aaa; }
-        .cart-total-section { border-top: 2px dashed #555; padding-top: 15px; }
-        .summary-line { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1.2em; }
+        .right-panel h2 { font-size: 1.6em; font-weight: bold; margin-top: 0;}
+        .cart-list { flex: 1; overflow-y: auto; margin-bottom: 20px; padding-right: 5px;}
+        /* Scrollbar for cart */
+        .cart-list::-webkit-scrollbar { width: 6px; }
+        .cart-list::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+
+        .cart-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #444; }
+        .cart-item-info { flex: 1; font-size: 1.1em; font-weight: bold;}
+        .cart-addon { font-size: 0.85em; color: #bbb; font-weight: normal; margin-top: 4px;}
+        .cart-item-price-col { text-align: right; font-size: 1.1em; font-weight: bold;}
         
-        .btn-main { background: var(--primary); color: white; border: none; padding: 15px; border-radius: 8px; font-size: 1.2em; cursor: pointer; width: 100%; transition: 0.3s; }
+        .cart-total-section { border-top: 2px dashed #555; padding-top: 15px; }
+        .summary-line { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1.3em; font-weight: bold;}
+        
+        .btn-main { background: var(--primary); color: white; border: none; padding: 18px; border-radius: 8px; font-size: 1.3em; font-weight: bold; cursor: pointer; width: 100%; transition: 0.3s; }
         .btn-main:hover { background: #d62828; }
-        .btn-secondary { background: var(--secondary); color: #121212; border: none; padding: 15px; border-radius: 8px; font-size: 1.2em; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; }
+        .btn-secondary { background: var(--secondary); color: #121212; border: none; padding: 18px; border-radius: 8px; font-size: 1.3em; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; }
+        .btn-delete { background: #dc3545; color: white; border: none; border-radius: 6px; padding: 6px 12px; margin-top: 5px; cursor: pointer; font-weight: bold;}
 
         /* Modals */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 100; }
         .modal-content { background: var(--surface); padding: 30px; border-radius: 15px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; }
-        .modal h2 { margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 10px; }
-        .addon-group { margin-bottom: 15px; }
-        .addon-option { display: flex; justify-content: space-between; padding: 8px; background: #2a2a2a; margin-bottom: 5px; border-radius: 5px; }
+        .modal h2 { margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 10px; font-size: 1.6em;}
+        .addon-group { margin-bottom: 20px; }
+        .addon-group h3 { font-size: 1.3em; color: var(--secondary); margin-bottom: 10px;}
+        .addon-option { display: flex; justify-content: space-between; padding: 12px; background: #2a2a2a; margin-bottom: 8px; border-radius: 8px; font-size: 1.1em; font-weight: bold; cursor: pointer;}
         
+        /* Checkbox styling */
+        .addon-option label { cursor: pointer; display: flex; align-items: center; width: 100%;}
+        .addon-option input[type="checkbox"] { transform: scale(1.3); margin-right: 12px; cursor: pointer;}
+
         /* Printing styles */
         @media print {
             body > *:not(#print-area) { display: none; }
@@ -67,10 +91,13 @@
     <div class="left-panel">
         <div class="header">
             <h2>POS System</h2>
-            <button class="btn-print-setup" onclick="alert('กรุณาตั้งค่าเครื่องปริ้นเริ่มต้นเป็นเครื่องพิมพ์สลิป 58mm ในระบบของคุณ')">🖨️ เครื่องปริ้น</button>
+            <!-- ปรับปุ่มให้ทำหน้าที่ทดสอบการปริ้น/แสดง Dialog -->
+            <button class="btn-print-setup" onclick="setupPrinter()">🖨️ เครื่องปริ้น</button>
         </div>
-        <div class="categories" id="categories-container">กำลังโหลด...</div>
-        <div class="menu-grid" id="menu-container"></div>
+        <!-- เปลี่ยนมาใช้ Container ที่เลื่อนลงได้ -->
+        <div class="menu-list-container" id="menu-list-container">
+            กำลังโหลดข้อมูล...
+        </div>
     </div>
 
     <div class="right-panel">
@@ -78,7 +105,7 @@
         <div class="cart-list" id="cart-list"></div>
         <div class="cart-total-section">
             <div class="summary-line"><span>ส่วนลด</span><span id="discount-display">0฿</span></div>
-            <div class="summary-line" style="font-weight: bold; color: var(--secondary);"><span>รวมทั้งหมด</span><span id="total-display">0฿</span></div>
+            <div class="summary-line" style="font-weight: bold; color: var(--secondary); font-size: 1.5em;"><span>รวมทั้งหมด</span><span id="total-display">0฿</span></div>
             <button class="btn-main" onclick="openFreeCupModal()">ถัดไป</button>
         </div>
     </div>
@@ -88,7 +115,7 @@
         <div class="modal-content">
             <h2 id="addon-modal-title">เลือก แอดออน</h2>
             <div id="addon-modal-body"></div>
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <div style="display: flex; gap: 10px; margin-top: 25px;">
                 <button class="btn-main" style="background:#555;" onclick="closeModal('addon-modal')">ยกเลิก</button>
                 <button class="btn-main" onclick="confirmAddon()">ตกลง</button>
             </div>
@@ -100,7 +127,7 @@
         <div class="modal-content">
             <h2>เลือกแก้วฟรี (ส่วนลด)</h2>
             <div id="free-modal-body"></div>
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <div style="display: flex; gap: 10px; margin-top: 25px;">
                 <button class="btn-main" style="background:#555;" onclick="skipFree()">ข้าม / ไม่เลือก</button>
                 <button class="btn-main" onclick="confirmFree()">ยืนยัน</button>
             </div>
@@ -110,12 +137,12 @@
     <!-- Payment Modal -->
     <div class="modal" id="payment-modal">
         <div class="modal-content" style="text-align: center;">
-            <h2>ชำระเงิน <span id="pay-amount" style="color: var(--secondary);"></span></h2>
+            <h2 style="font-size: 1.8em;">ชำระเงิน <span id="pay-amount" style="color: var(--secondary);"></span></h2>
             <button class="btn-main" style="margin-bottom: 15px;" onclick="processPayment('เงินสด')">💵 เงินสด</button>
             <button class="btn-secondary" onclick="processPayment('QRCODE')">📱 QR Code (โชว์จอลูกค้า)</button>
             
             <div id="print-controls" style="display: none; margin-top: 20px; border-top: 1px solid #444; padding-top: 20px;">
-                <button class="btn-secondary" id="btn-print-cust" onclick="printReceipt('customer')" style="margin-bottom:10px;">🖨️ ปริ้นใบเสร็จลูกค้า</button>
+                <button class="btn-secondary" id="btn-print-cust" onclick="printReceipt('customer')" style="margin-bottom:15px;">🖨️ ปริ้นใบเสร็จลูกค้า</button>
                 <button class="btn-main" onclick="printReceipt('shop')">🖨️ ปริ้นใบเสร็จร้านค้า & จบออเดอร์</button>
             </div>
         </div>
@@ -131,7 +158,6 @@
         const API_URL = 'https://script.google.com/macros/s/AKfycbyTsblHupSi2rU2Ue4kXRRpaH-_EfncjOM2bLt41B3fKOnJOCjnyeinaGoSMo5h9VSsXQ/exec';
 
         let appData = { menus: [], addons: {}, lastOrderId: 0 };
-        let currentCategory = '';
         let cart = [];
         let tempItem = null;
         let currentOrderId = 1;
@@ -139,44 +165,79 @@
         // โหลดข้อมูลตอนเปิดหน้า
         window.onload = async () => {
             try {
+                // เช็คว่าเคยผ่านการตั้งค่า Print หรือยัง (เชิงสัญลักษณ์)
+                if(!localStorage.getItem('printer_setup_done')) {
+                     console.log("Printer not explicitly setup in this session yet.");
+                }
+
                 const res = await fetch(`${API_URL}?action=getInitData`);
                 appData = await res.json();
                 currentOrderId = appData.lastOrderId + 1;
-                renderCategories();
+                renderAllMenus();
                 updateCustomerDisplay();
             } catch (err) {
-                document.getElementById('categories-container').innerHTML = 'เกิดข้อผิดพลาดในการโหลดข้อมูล';
+                document.getElementById('menu-list-container').innerHTML = '<h2 style="color:red; text-align:center;">เกิดข้อผิดพลาดในการโหลดข้อมูล</h2>';
             }
         };
 
-        function renderCategories() {
-            const container = document.getElementById('categories-container');
-            const cats = [...new Set(appData.menus.map(m => m.category))];
-            container.innerHTML = '';
-            cats.forEach((cat, index) => {
-                const btn = document.createElement('button');
-                btn.className = `cat-btn ${index === 0 ? 'active' : ''}`;
-                btn.innerText = cat;
-                btn.onclick = () => {
-                    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    renderMenus(cat);
-                };
-                container.appendChild(btn);
-            });
-            if(cats.length > 0) renderMenus(cats[0]);
+        // ฟังก์ชันสำหรับปุ่มตั้งค่าเครื่องปริ้น
+        function setupPrinter() {
+            // Browser สมัยใหม่ ไม่อนุญาตให้ Javascript อ่านรายชื่อ Hardware Printer ตรงๆ
+            // วิธีที่ปฏิบัติได้จริงบน Web POS คือการเรียก window.print() หน้าเปล่าๆ เพื่อให้ User เลือก Default Printer ไว้
+            document.getElementById('receipt-content').innerHTML = `
+                <div style="text-align:center;">
+                    <b>TEST PRINT</b><br>
+                    กรุณาเลือกเครื่องพิมพ์สลิป 58mm<br>
+                    และตั้งค่าเป็นค่าเริ่มต้น
+                </div>
+            `;
+            
+            // ใช้ setTimeout เพื่อให้ DOM วาดเนื้อหาเสร็จก่อนเรียก print
+            setTimeout(() => {
+                window.print();
+                localStorage.setItem('printer_setup_done', 'true');
+                alert("ระบบจดจำการตั้งค่าการพิมพ์ของเบราว์เซอร์แล้ว\nครั้งต่อไปจะพิมพ์ออกเครื่องที่เลือกไว้ล่าสุด");
+            }, 500);
         }
 
-        function renderMenus(category) {
-            const container = document.getElementById('menu-container');
+        // แสดงผลเมนูทั้งหมด แบบเรียงลงมาตามหมวดหมู่
+        function renderAllMenus() {
+            const container = document.getElementById('menu-list-container');
             container.innerHTML = '';
-            const items = appData.menus.filter(m => m.category === category);
-            items.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'menu-item';
-                div.innerHTML = `<div>${item.name}</div><div class="menu-price">${item.price}฿</div>`;
-                div.onclick = () => selectItem(item);
-                container.appendChild(div);
+            
+            // หาหมวดหมู่ทั้งหมดที่มีแบบไม่ซ้ำ
+            const cats = [...new Set(appData.menus.map(m => m.category))];
+
+            cats.forEach(cat => {
+                // สร้าง Section สำหรับหมวดหมู่นี้
+                const section = document.createElement('div');
+                section.className = 'category-section';
+                
+                // หัวข้อหมวดหมู่
+                const title = document.createElement('div');
+                title.className = 'category-title';
+                title.innerText = cat;
+                section.appendChild(title);
+
+                // Grid สำหรับใส่เมนู
+                const grid = document.createElement('div');
+                grid.className = 'menu-grid';
+
+                // คัดกรองเมนูเฉพาะหมวดนี้
+                const items = appData.menus.filter(m => m.category === cat);
+                items.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'menu-item';
+                    div.innerHTML = `
+                        <div class="menu-name">${item.name}</div>
+                        <div class="menu-price">${item.price}฿</div>
+                    `;
+                    div.onclick = () => selectItem(item);
+                    grid.appendChild(div);
+                });
+
+                section.appendChild(grid);
+                container.appendChild(section);
             });
         }
 
@@ -203,10 +264,21 @@
                     addon.options.forEach(opt => {
                         const optDiv = document.createElement('div');
                         optDiv.className = 'addon-option';
+                        // ใช้ label ครอบ input เพื่อให้กดที่ชื่อหรือกรอบก็ติด
                         optDiv.innerHTML = `
-                            <label><input type="checkbox" value='${JSON.stringify(opt)}' class="addon-chk"> ${opt.name}</label>
+                            <label>
+                                <input type="checkbox" value='${JSON.stringify(opt)}' class="addon-chk"> 
+                                <span>${opt.name}</span>
+                            </label>
                             <span>+${opt.price}฿</span>
                         `;
+                        // ทำให้คลิกที่ตัว div แล้วส่งผลถึง checkbox ข้างในได้
+                        optDiv.onclick = function(e) {
+                            if(e.target.tagName !== 'INPUT') {
+                                const chk = this.querySelector('input');
+                                chk.checked = !chk.checked;
+                            }
+                        };
                         group.appendChild(optDiv);
                     });
                     body.appendChild(group);
@@ -257,9 +329,9 @@
                             <div>${item.name} ${item.isFree ? '<span style="color:#E63946">(ฟรี)</span>' : ''}</div>
                             <div class="cart-addon">${addonText}</div>
                         </div>
-                        <div style="text-align:right;">
+                        <div class="cart-item-price-col">
                             <div>${item.isFree ? '0' : itemTotal}฿</div>
-                            <button onclick="cart.splice(${index}, 1); renderCart();" style="background:red; color:white; border:none; border-radius:4px; margin-top:5px; cursor:pointer;">ลบ</button>
+                            <button class="btn-delete" onclick="cart.splice(${index}, 1); renderCart();">ลบ</button>
                         </div>
                     </div>
                 `;
@@ -276,8 +348,11 @@
             body.innerHTML = '';
             cart.forEach((item, i) => {
                 body.innerHTML += `
-                    <div class="addon-option">
-                        <label><input type="checkbox" id="free-chk-${i}" ${item.isFree ? 'checked' : ''}> ${item.name}</label>
+                    <div class="addon-option" onclick="const chk=document.getElementById('free-chk-${i}'); chk.checked=!chk.checked;">
+                        <label onclick="event.preventDefault()">
+                            <input type="checkbox" id="free-chk-${i}" ${item.isFree ? 'checked' : ''} onclick="event.stopPropagation()"> 
+                            <span>${item.name}</span>
+                        </label>
                     </div>
                 `;
             });
@@ -307,7 +382,7 @@
             document.getElementById('payment-modal').style.display = 'flex';
             
             // ปิด QR Code ที่จอลูกค้าถ้าเปิดไว้
-            let state = JSON.parse(localStorage.getItem('pos_state'));
+            let state = JSON.parse(localStorage.getItem('pos_state')) || { cart:[], total:0, discount:0 };
             state.showQR = false;
             localStorage.setItem('pos_state', JSON.stringify(state));
         }
@@ -413,6 +488,12 @@
             };
 
             try {
+                // เปลี่ยนข้อความปุ่มเพื่อบอกผู้ใช้ว่ากำลังบันทึก
+                const btnShopPrint = document.querySelector('#print-controls .btn-main');
+                const origText = btnShopPrint.innerText;
+                btnShopPrint.innerText = "กำลังบันทึก...";
+                btnShopPrint.disabled = true;
+
                 // บันทึกลง Google Sheet
                 await fetch(API_URL, {
                     method: 'POST',
@@ -425,9 +506,16 @@
                 cart = [];
                 renderCart();
                 closeModal('payment-modal');
-                alert('บันทึกออเดอร์สำเร็จเรียบร้อย');
+                
+                // คืนค่าปุ่ม
+                btnShopPrint.innerText = origText;
+                btnShopPrint.disabled = false;
+                
+                // แจ้งเตือน หรือจะปล่อยผ่านไปเลยเพื่อความรวดเร็วก็ได้
+                // alert('บันทึกออเดอร์สำเร็จเรียบร้อย');
             } catch (err) {
                 alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+                document.querySelector('#print-controls .btn-main').disabled = false;
             }
         }
 
