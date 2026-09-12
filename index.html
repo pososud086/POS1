@@ -8,6 +8,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 </head>
+
 <body>
   <!-- Header Navbar -->
   <div class="navbar">
@@ -16,10 +17,10 @@
       <span id="store-title" style="font-size: 1.4rem; font-weight: bold; margin-left: 10px;">POS Café</span>
     </div>
     <div>
-      <button class="btn-touch btn-warning" onclick="switchView('pos')">หน้าร้าน</button>
-      <button class="btn-touch btn-primary" onclick="switchView('expense')">รายจ่าย</button>
-      <button class="btn-touch btn-warning" onclick="switchView('dashboard')">แดชบอร์ด</button>
-      <button class="btn-touch" style="background:#444;" onclick="openSettingsModal()">⚙️ ตั้งค่า</button>
+      <button class="btn-touch btn-warning" onclick="window.switchView('pos')">หน้าร้าน</button>
+      <button class="btn-touch btn-primary" onclick="window.switchView('expense')">รายจ่าย</button>
+      <button class="btn-touch btn-warning" onclick="window.switchView('dashboard')">แดชบอร์ด</button>
+      <button class="btn-touch" style="background:#444;" onclick="window.openSettingsModal()">⚙️ ตั้งค่า</button>
     </div>
   </div>
 
@@ -35,7 +36,7 @@
       <div id="cart-items" class="cart-items"></div>
       <div style="border-top: 1px solid #444; padding-top: 10px;">
         <h3>รวมทั้งสิ้น: <span id="cart-total" style="color: var(--accent-orange);">0</span> บาท</h3>
-        <button class="btn-touch btn-primary" style="width: 100%;" onclick="openCheckoutModal()">ถัดไป ➔</button>
+        <button class="btn-touch btn-primary" style="width: 100%;" onclick="window.openCheckoutModal()">ถัดไป ➔</button>
       </div>
     </div>
   </div>
@@ -53,7 +54,7 @@
         <option value="อื่นๆ">อื่นๆ</option>
       </select>
       <input type="text" id="exp-note" placeholder="หมายเหตุเพิ่มเติม" style="padding: 12px; font-size: 1.1rem;">
-      <button class="btn-touch btn-primary" onclick="saveExpenseUI()">บันทึกรายจ่าย</button>
+      <button class="btn-touch btn-primary" onclick="window.saveExpenseUI()">บันทึกรายจ่าย</button>
     </div>
   </div>
 
@@ -63,7 +64,7 @@
     <div style="display:flex; gap:15px; margin-bottom:20px; align-items:center; flex-wrap:wrap;">
       <label>เริ่มต้น: <input type="date" id="dash-start" style="padding:8px; font-size:1rem;"></label>
       <label>สิ้นสุด: <input type="date" id="dash-end" style="padding:8px; font-size:1rem;"></label>
-      <button class="btn-touch btn-warning" style="padding:10px 20px;" onclick="loadDashboardData()">ดึงข้อมูล</button>
+      <button class="btn-touch btn-warning" style="padding:10px 20px;" onclick="window.loadDashboardData()">ดึงข้อมูล</button>
     </div>
 
     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px; margin-bottom:20px;">
@@ -84,24 +85,14 @@
     <div style="background:#1e1e1e; padding:20px; border-radius:12px;">
       <h3>พิมพ์รายงาน PDF (ยื่นภาษี)</h3>
       <div style="display:flex; gap:10px; margin-top:10px;">
-        <button class="btn-touch btn-primary" onclick="exportPDFReport('ALL')">ออกรายงาน (ทั้งหมด)</button>
-        <button class="btn-touch btn-warning" onclick="exportPDFReport('CASH')">เฉพาะ เงินสด</button>
-        <button class="btn-touch" style="background:#008CBA;" onclick="exportPDFReport('QR-CODE')">เฉพาะ QR-CODE</button>
+        <button class="btn-touch btn-primary" onclick="window.exportPDFReport('ALL')">ออกรายงาน (ทั้งหมด)</button>
+        <button class="btn-touch btn-warning" onclick="window.exportPDFReport('CASH')">เฉพาะ เงินสด</button>
+        <button class="btn-touch" style="background:#008CBA;" onclick="window.exportPDFReport('QR-CODE')">เฉพาะ QR-CODE</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal 1: เลือก Add-ons เมนู -->
-  <div id="modal-addons" class="modal-overlay" style="display:none;">
-    <div class="modal-content">
-      <h3 id="addon-menu-title">ตัวเลือกเพิ่มเติม</h3>
-      <div id="addon-list-container" style="max-height:300px; overflow-y:auto; margin-bottom:15px;"></div>
-      <button class="btn-touch btn-primary" style="width:100%;" onclick="confirmAddonSelection()">เพิ่มลงตะกร้า</button>
-      <button class="btn-touch" style="width:100%; background:#333; margin-top:8px;" onclick="closeAddonModal()">ยกเลิก</button>
-    </div>
-  </div>
-
-  <!-- Modal 2: ตั้งค่าร้านค้า -->
+  <!-- Modal 1: ตั้งค่าร้านค้า -->
   <div id="modal-settings" class="modal-overlay" style="display:none;">
     <div class="modal-content" style="max-width:600px; max-height:85vh; overflow-y:auto;">
       <h2>⚙️ ตั้งค่าระบบร้านค้า</h2>
@@ -114,59 +105,12 @@
           <option value="USB">USB Printer</option>
         </select>
       </div>
-      <hr style="border-color:#444; margin:15px 0;">
-      <h3>จัดการหมวดหมู่ & เมนู</h3>
-      <p style="font-size:0.9rem; color:#aaa;">(ปรับแต่งหมวดหมู่ เมนู และราคา บันทึกลง Main DB Sheet)</p>
-      <button class="btn-touch btn-primary" style="width:100%; margin-top:15px;" onclick="saveSettingsUI()">บันทึกการตั้งค่าลง Sheet</button>
-      <button class="btn-touch" style="width:100%; background:#333; margin-top:8px;" onclick="closeSettingsModal()">ปิดหน้าต่าง</button>
+      <button class="btn-touch btn-primary" style="width:100%; margin-top:15px;" onclick="window.saveSettingsUI()">บันทึกการตั้งค่าลง Sheet</button>
+      <button class="btn-touch" style="width:100%; background:#333; margin-top:8px;" onclick="window.closeSettingsModal()">ปิดหน้าต่าง</button>
     </div>
   </div>
 
-  <!-- Modal 3: Checkout -->
-  <div id="modal-checkout" class="modal-overlay" style="display:none;">
-    <div class="modal-content">
-      <h2>สิทธิ์แก้วฟรี & การชำระเงิน</h2>
-      <div>
-        <p>1. สิทธิ์แก้วฟรี</p>
-        <button class="btn-touch btn-warning" onclick="selectFreeCupOption('use')">แถมแก้วฟรี</button>
-        <button class="btn-touch" style="background:#555;" onclick="selectFreeCupOption('none')">ไม่มี</button>
-      </div>
-
-      <div id="payment-section" style="opacity: 0.4; pointer-events: none; margin-top: 20px;">
-        <p>2. วิธีชำระเงิน</p>
-        <button class="btn-touch btn-primary" onclick="selectPaymentMethod('CASH')">เงินสด</button>
-        <button class="btn-touch btn-warning" onclick="selectPaymentMethod('QR-CODE')">QR-CODE</button>
-      </div>
-
-      <div style="margin-top: 25px; text-align: right;">
-        <button class="btn-touch btn-primary" id="btn-confirm-pay" style="display:none;" onclick="processPaymentAndPrint()">ยืนยันการชำระเงิน (ถัดไป)</button>
-        <button class="btn-touch" style="background:#333;" onclick="closeCheckoutModal()">ยกเลิก</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal 4: Numpad กรอกเบอร์ -->
-  <div id="modal-numpad" class="modal-overlay" style="display:none;">
-    <div class="modal-content">
-      <h3>กรอกเบอร์โทรสมาชิก</h3>
-      <input type="text" id="phone-input" style="width:100%; font-size:1.8rem; text-align:center;" readonly>
-      <div class="numpad-grid">
-        <button class="btn-touch" onclick="pressNumpad('1')">1</button>
-        <button class="btn-touch" onclick="pressNumpad('2')">2</button>
-        <button class="btn-touch" onclick="pressNumpad('3')">3</button>
-        <button class="btn-touch" onclick="pressNumpad('4')">4</button>
-        <button class="btn-touch" onclick="pressNumpad('5')">5</button>
-        <button class="btn-touch" onclick="pressNumpad('6')">6</button>
-        <button class="btn-touch" onclick="pressNumpad('7')">7</button>
-        <button class="btn-touch" onclick="pressNumpad('8')">8</button>
-        <button class="btn-touch" onclick="pressNumpad('9')">9</button>
-        <button class="btn-touch btn-primary" onclick="clearNumpad()">C</button>
-        <button class="btn-touch" onclick="pressNumpad('0')">0</button>
-        <button class="btn-touch btn-warning" onclick="submitPhoneCheck()">ตกลง</button>
-      </div>
-    </div>
-  </div>
-
+  <!-- โหลดสคริปต์ app.js ไว้ท้าย body -->
   <script src="app.js"></script>
 </body>
 </html>
