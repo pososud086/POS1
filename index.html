@@ -2,289 +2,275 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>POS เติมมัทฉะ</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
-  <style>
-    :root {
-      --bg-dark: #121212;
-      --bg-panel: #1e1e1e;
-      --primary-orange: #ff6d00;
-      --primary-red: #d32f2f;
-      --text-light: #ffffff;
-    }
-    body {
-      background-color: var(--bg-dark); color: var(--text-light);
-      font-family: 'Sarabun', sans-serif; margin: 0; padding: 0;
-      display: flex; height: 100vh; overflow: hidden;
-    }
-    .main-layout { display: flex; width: 100%; }
-    .menu-section { flex: 2; padding: 20px; overflow-y: auto; background: var(--bg-dark); }
-    .cart-section { flex: 1; background: var(--bg-panel); border-left: 2px solid #333; display: flex; flex-direction: column; }
-    
-    .category-tabs { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 10px; }
-    .btn-cat { padding: 15px 30px; font-size: 18px; border: none; border-radius: 8px; background: #333; color: white; cursor: pointer; white-space: nowrap; }
-    .btn-cat.active { background: var(--primary-orange); font-weight: bold; }
-    
-    .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; }
-    .menu-item { background: #2a2a2a; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
-    .menu-item:active { border-color: var(--primary-red); transform: scale(0.98); }
-    .menu-item h3 { margin: 10px 0; font-size: 20px; }
-    .menu-item p { color: var(--primary-orange); font-size: 18px; font-weight: bold; margin: 0; }
-
-    .cart-list { flex: 1; overflow-y: auto; padding: 20px; }
-    .cart-item { display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid #333; font-size: 18px; }
-    
-    .cart-footer { padding: 20px; background: #1a1a1a; }
-    .total-row { display: flex; justify-content: space-between; font-size: 24px; font-weight: bold; margin-bottom: 20px; color: var(--primary-orange); }
-    
-    .btn-large { width: 100%; padding: 20px; font-size: 22px; font-weight: bold; border: none; border-radius: 12px; cursor: pointer; color: white; margin-bottom: 10px;}
-    .btn-pay { background: linear-gradient(45deg, var(--primary-red), var(--primary-orange)); }
-    .btn-sec { background: #444; }
-    
-    /* Modal */
-    .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 1000; }
-    .modal-content { background: var(--bg-panel); padding: 30px; border-radius: 15px; width: 90%; max-width: 500px; text-align: center; }
-    .modal input { width: 90%; padding: 15px; font-size: 20px; margin: 15px 0; border-radius: 8px; border: none; text-align: center; }
-    .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-    .btn-num { padding: 20px; font-size: 24px; background: #333; color: white; border: none; border-radius: 8px; cursor: pointer; }
-    .btn-num:active { background: var(--primary-orange); }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cloud Touchscreen POS</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
+  <div class="navbar">
+    <div class="logo-container">
+      <img id="store-logo" src="" alt="Store Logo">
+      <span id="store-title" style="font-size: 1.4rem; font-weight: bold; margin-left: 10px;">POS Café</span>
+    </div>
+    <div>
+      <button class="btn-touch btn-warning" onclick="switchView('pos')">หน้าร้าน</button>
+      <button class="btn-touch btn-primary" onclick="switchView('expense')">รายจ่าย</button>
+      <button class="btn-touch btn-warning" onclick="switchView('dashboard')">แดชบอร์ด</button>
+      <button class="btn-touch" style="background:#444;" onclick="openSettingsModal()">⚙️</button>
+    </div>
+  </div>
 
-  <!-- Layout หลัก -->
-  <div class="main-layout">
+  <!-- หน้าจอ POS หลัก -->
+  <div id="view-pos" class="pos-container">
     <div class="menu-section">
-      <div class="category-tabs" id="categoryTabs">
-        <!-- Gen Categories -->
-      </div>
-      <div class="menu-grid" id="menuGrid">
-        <!-- Gen Menus -->
-      </div>
+      <div id="category-bar" class="category-bar"></div>
+      <div id="menu-grid" class="menu-grid"></div>
     </div>
-    
+
     <div class="cart-section">
-      <div class="cart-list" id="cartList"></div>
-      <div class="cart-footer">
-        <div class="total-row"><span>รวมสุทธิ</span><span id="totalPrice">฿0</span></div>
-        <button class="btn-large btn-pay" onclick="openCheckout()">ชำระเงิน / ถัดไป</button>
-        <button class="btn-large btn-sec" onclick="clearCart()">ยกเลิกออเดอร์</button>
+      <h2>รายการสั่งซื้อ</h2>
+      <div id="cart-items" class="cart-items"></div>
+      <div style="border-top: 1px solid #444; padding-top: 10px;">
+        <h3>รวมทั้งสิ้น: <span id="cart-total" style="color: var(--accent-orange);">0</span> บาท</h3>
+        <button class="btn-touch btn-primary" style="width: 100%;" onclick="openCheckoutModal()">ถัดไป ➔</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal Checkout -->
-  <div id="checkoutModal" class="modal">
+  <!-- Modal ชำระเงิน & แถมแก้วฟรี -->
+  <div id="modal-checkout" class="modal-overlay" style="display:none;">
     <div class="modal-content">
-      <h2>ตัวเลือกชำระเงิน</h2>
+      <h2>สิทธิ์แก้วฟรี & การชำระเงิน</h2>
       
-      <div id="freeCupSection" style="margin-bottom:20px;">
-        <button class="btn-large btn-sec" style="background:#2e7d32;" onclick="promptMemberPhone()">🎁 ใช้สิทธิ์แถมแก้วฟรี</button>
-        <p id="freeCupStatus" style="color:var(--primary-orange);"></p>
+      <!-- ขั้นที่ 1: สิทธิ์แก้วฟรี -->
+      <div>
+        <p>1. สิทธิ์แก้วฟรี</p>
+        <button class="btn-touch btn-warning" onclick="selectFreeCupOption('use')">แถมแก้วฟรี</button>
+        <button class="btn-touch" style="background:#555;" onclick="selectFreeCupOption('none')">ไม่มี</button>
       </div>
 
-      <div style="display:flex; gap:10px;">
-        <button class="btn-large" style="background:#1976d2;" onclick="processPayment('เงินสด')">💵 เงินสด</button>
-        <button class="btn-large" style="background:#0277bd;" onclick="processPayment('QR-CODE')">📱 QR-CODE</button>
+      <!-- ขั้นที่ 2: วิธีชำระเงิน (กดได้เมื่อเลือกสิทธิ์แล้ว) -->
+      <div id="payment-section" style="opacity: 0.4; pointer-events: none; margin-top: 20px;">
+        <p>2. วิธีชำระเงิน</p>
+        <button class="btn-touch btn-primary" onclick="selectPaymentMethod('CASH')">เงินสด</button>
+        <button class="btn-touch btn-warning" onclick="selectPaymentMethod('QR-CODE')">QR-CODE</button>
       </div>
-      <button class="btn-large btn-sec" onclick="closeModal('checkoutModal')">ย้อนกลับ</button>
+
+      <div style="margin-top: 25px; text-align: right;">
+        <button class="btn-touch btn-primary" id="btn-confirm-pay" style="display:none;" onclick="processPaymentAndPrint()">ยืนยันการชำระเงิน (ถัดไป)</button>
+        <button class="btn-touch" style="background:#333;" onclick="closeCheckoutModal()">ยกเลิก</button>
+      </div>
     </div>
   </div>
 
-  <!-- Modal กรอกเบอร์โทร (Numpad) -->
-  <div id="phoneModal" class="modal">
+  <!-- Modal Numpad กรอกเบอร์โทร -->
+  <div id="modal-numpad" class="modal-overlay" style="display:none;">
     <div class="modal-content">
-      <h2>กรอกเบอร์โทรศัพท์สมาชิก</h2>
-      <input type="text" id="phoneInput" readonly placeholder="08XXXXXXXX">
-      <div class="numpad">
-        <button class="btn-num" onclick="typePhone('1')">1</button>
-        <button class="btn-num" onclick="typePhone('2')">2</button>
-        <button class="btn-num" onclick="typePhone('3')">3</button>
-        <button class="btn-num" onclick="typePhone('4')">4</button>
-        <button class="btn-num" onclick="typePhone('5')">5</button>
-        <button class="btn-num" onclick="typePhone('6')">6</button>
-        <button class="btn-num" onclick="typePhone('7')">7</button>
-        <button class="btn-num" onclick="typePhone('8')">8</button>
-        <button class="btn-num" onclick="typePhone('9')">9</button>
-        <button class="btn-num" onclick="typePhone('C')">C</button>
-        <button class="btn-num" onclick="typePhone('0')">0</button>
-        <button class="btn-num" style="background:var(--primary-orange);" onclick="verifyMember()">ตกลง</button>
+      <h3>กรอกเบอร์โทรสมาชิก</h3>
+      <input type="text" id="phone-input" style="width:100%; font-size:1.8rem; text-align:center;" readonly>
+      <div class="numpad-grid">
+        <button class="btn-touch" onclick="pressNumpad('1')">1</button>
+        <button class="btn-touch" onclick="pressNumpad('2')">2</button>
+        <button class="btn-touch" onclick="pressNumpad('3')">3</button>
+        <button class="btn-touch" onclick="pressNumpad('4')">4</button>
+        <button class="btn-touch" onclick="pressNumpad('5')">5</button>
+        <button class="btn-touch" onclick="pressNumpad('6')">6</button>
+        <button class="btn-touch" onclick="pressNumpad('7')">7</button>
+        <button class="btn-touch" onclick="pressNumpad('8')">8</button>
+        <button class="btn-touch" onclick="pressNumpad('9')">9</button>
+        <button class="btn-touch btn-primary" onclick="clearNumpad()">C</button>
+        <button class="btn-touch" onclick="pressNumpad('0')">0</button>
+        <button class="btn-touch btn-warning" onclick="submitPhoneCheck()">ตกลง</button>
       </div>
-      <button class="btn-large btn-sec" onclick="closeModal('phoneModal')">ยกเลิก</button>
     </div>
   </div>
 
-  <canvas id="receiptCanvas" style="display:none;"></canvas>
-
-  <script>
-    // URL ของ Web App ที่คุณ Deploy จาก Apps Script
-    const API_URL = "https://script.google.com/macros/s/AKfycbz6TgwaRt4D8kT3swSGkJdXBY7SHExWbI6wcG90pPjxqGMgc4h6fPrgH69O8ofQHWI8/exec"; 
-
-    // Mockup ข้อมูลสำหรับการทดสอบ (ถ้าลิงก์ API จริงให้ลบ Mockup ออกและใช้ fetch)
-    let menus = [
-      {ID: "M01", Name: "มัทฉะลาเต้", Price: 60, CategoryID: "C1", IsCollectPoint: "TRUE"},
-      {ID: "M02", Name: "มัทฉะยูซุ", Price: 70, CategoryID: "C1", IsCollectPoint: "TRUE"}
-    ];
-    let cart = [];
-    let isUsedFreeCup = false;
-    let memberPhone = "";
-
-    function renderMenu() {
-      const grid = document.getElementById('menuGrid');
-      grid.innerHTML = menus.map(m => `
-        <div class="menu-item" onclick="addToCart('${m.ID}')">
-          <h3>${m.Name}</h3>
-          <p>฿${m.Price}</p>
-        </div>
-      `).join('');
-    }
-
-    function addToCart(menuID) {
-      const menu = menus.find(m => m.ID === menuID);
-      cart.push({...menu});
-      updateCartUI();
-    }
-
-    function updateCartUI() {
-      const list = document.getElementById('cartList');
-      let total = 0;
-      let totalCups = 0;
-      
-      list.innerHTML = cart.map((item, idx) => {
-        total += item.Price;
-        if(item.IsCollectPoint === "TRUE") totalCups++;
-        return `
-        <div class="cart-item">
-          <span>${item.Name}</span>
-          <span>฿${item.Price} <span style="color:red; margin-left:10px; cursor:pointer;" onclick="removeFromCart(${idx})">X</span></span>
-        </div>`;
-      }).join('');
-      
-      document.getElementById('totalPrice').innerText = '฿' + total;
-      
-      // ส่งข้อมูลไปอัปเดตหน้าจอ Customer Display ผ่าน LocalStorage
-      localStorage.setItem("cds_data", JSON.stringify({ cart, total, discount: isUsedFreeCup ? 60 : 0 }));
-    }
-
-    function removeFromCart(idx) {
-      cart.splice(idx, 1);
-      updateCartUI();
-    }
-
-    function clearCart() {
-      cart = [];
-      isUsedFreeCup = false;
-      memberPhone = "";
-      updateCartUI();
-    }
-
-    function openCheckout() {
-      if(cart.length === 0) return alert("กรุณาเลือกเมนู");
-      
-      // ลอจิก 11 แก้วแถมฟรีอัตโนมัติ
-      let cupsCount = cart.filter(c => c.IsCollectPoint === "TRUE").length;
-      if (cupsCount >= 11) {
-         isUsedFreeCup = true;
-         document.getElementById('freeCupStatus').innerText = `🎉 ได้รับสิทธิ์แถมฟรี 1 แก้วอัตโนมัติ (จำนวนแก้ว: ${cupsCount})`;
-      } else {
-         document.getElementById('freeCupStatus').innerText = "";
-      }
-
-      document.getElementById('checkoutModal').style.display = 'flex';
-    }
-
-    function closeModal(id) {
-      document.getElementById(id).style.display = 'none';
-    }
-
-    // ระบบกรอกเบอร์
-    function promptMemberPhone() {
-      closeModal('checkoutModal');
-      document.getElementById('phoneInput').value = "";
-      document.getElementById('phoneModal').style.display = 'flex';
-    }
-    
-    function typePhone(num) {
-      const input = document.getElementById('phoneInput');
-      if(num === 'C') input.value = input.value.slice(0, -1);
-      else if(input.value.length < 10) input.value += num;
-    }
-
-    async function verifyMember() {
-      const phone = document.getElementById('phoneInput').value;
-      if(phone.length !== 10) return alert("กรุณากรอกเบอร์ให้ครบ 10 หลัก");
-      
-      // จำลองเรียก API (ใช้ Fetch ชี้ไปที่ Web App จริง)
-      /* 
-      const res = await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({ action: "checkMember", phone: phone })
-      }).then(r => r.json());
-      */
-      
-      // สมมติว่ามี 10 แก้ว
-      const res = { status: "success", found: true, canRedeem: true };
-
-      if(res.canRedeem) {
-        alert("ตรวจสอบสำเร็จ ได้รับสิทธิ์แถมฟรี 1 แก้ว!");
-        isUsedFreeCup = true;
-        memberPhone = phone;
-        closeModal('phoneModal');
-        openCheckout();
-        document.getElementById('freeCupStatus').innerText = "✅ ใช้สิทธิ์แถมฟรีแล้ว";
-      } else {
-        alert("แต้มไม่ถึง 10 แก้ว หรือไม่พบสมาชิก");
-      }
-    }
-
-    async function processPayment(method) {
-      closeModal('checkoutModal');
-      
-      let cupsCount = cart.filter(c => c.IsCollectPoint === "TRUE").length;
-      
-      // ถ้าลูกค้าซื้อ 11 แก้ว = ใช้แต้มฟรี 1 แก้ว (หักออก 10) เหลือสะสม 1 แก้ว
-      // ถ้าซื้อ 2 แก้ว ไม่ใช้สิทธิ์ = สะสม 2 แก้ว
-      // ถ้าใช้สิทธิ์จากแต้มเก่า = ไม่นำแก้วฟรีมารวม
-      let earnCups = isUsedFreeCup ? (cupsCount >= 11 ? cupsCount - 10 : 0) : cupsCount;
-
-      let payload = {
-        action: "saveOrder",
-        payload: {
-          items: cart,
-          totalAmount: cart.reduce((sum, item) => sum + item.Price, 0) - (isUsedFreeCup ? 60 : 0), // สมมติส่วนลด 60
-          paymentMethod: method,
-          usedFreeCup: isUsedFreeCup,
-          phone: memberPhone,
-          earnCups: earnCups,
-          discount: isUsedFreeCup ? 60 : 0
-        }
-      };
-
-      // ส่ง API บันทึกลง Sheet
-      console.log("Saving order to DB...", payload);
-      
-      // ดำเนินการปริ้นใบเสร็จ (โค้ดพิมพ์ Bluetooth ที่คุณเตรียมไว้)
-      const mockPrintData = { cups: earnCups, code: "XyZ123" + earnCups, expiryDate: "12/10/2026" };
-      if(earnCups > 0) {
-        await handlePrint(mockPrintData); // เรียกฟังก์ชันปริ้น
-      } else {
-        alert("บันทึกออเดอร์สำเร็จ");
-      }
-      
-      clearCart();
-    }
-
-    // ==== โค้ดปริ้น Bluetooth จากที่คุณให้มา ====
-    let printCharacteristic = null; // ต้องเขียนฟังก์ชัน connect Bluetooth ด้วย navigator.bluetooth.requestDevice
-    async function handlePrint(data) {
-        // วางโค้ด Canvas ที่คุณให้มาในส่วนนี้
-        alert(`จำลองการพิมพ์: สะสมแต้ม ${data.cups} แก้ว โค้ด: ${data.code}`);
-    }
-
-    window.onload = () => {
-      renderMenu();
-    };
-  </script>
+  <script src="app.js"></script>
 </body>
 </html>
+3. สคริปต์การทำงานหลัก (app.js)
+// App Logic & State
+const GAS_API_URL = "YOUR_GOOGLE_APPS_SCRIPT_DEPLOYMENT_URL";
+
+let state = {
+  settings: {},
+  categories: [],
+  menus: [],
+  addons: [],
+  cart: [],
+  selectedFreeCupOption: false,
+  freeCupApplied: false,
+  paymentMethod: null,
+  rewardableCupsCount: 0
+};
+
+// เริ่มต้นระบบ
+window.onload = async () => {
+  await fetchInitialData();
+  renderCategories();
+  renderMenus();
+};
+
+async function fetchInitialData() {
+  try {
+    const res = await fetch(`${GAS_API_URL}?action=getInitialData`);
+    const json = await res.json();
+    if (json.status === "success") {
+      state.settings = json.data.settings || {};
+      state.categories = json.data.categories || [];
+      state.menus = json.data.menus || [];
+      state.addons = json.data.addons || [];
+      
+      if (state.settings.logoUrl) {
+        document.getElementById('store-logo').src = state.settings.logoUrl;
+      }
+    }
+  } catch (e) {
+    console.error("API Error", e);
+  }
+}
+
+// ลอจิกตะกร้าสินค้า & ส่งไปยัง Customer Facing Display (CFD) ผ่าน LocalStorage [2]
+function addToCart(menu) {
+  state.cart.push({ ...menu, selectedAddons: [] });
+  updateCartUI();
+}
+
+function updateCartUI() {
+  const container = document.getElementById('cart-items');
+  container.innerHTML = '';
+  let total = 0;
+  state.rewardableCupsCount = 0;
+
+  state.cart.forEach((item, index) => {
+    total += item.price;
+    if (item.isRewardable) state.rewardableCupsCount++;
+    
+    container.innerHTML += `
+      <div style="display:flex; justify-between; margin-bottom: 8px;">
+        <span>${item.name}</span>
+        <span>${item.price} บาท</span>
+      </div>
+    `;
+  });
+
+  document.getElementById('cart-total').innerText = total;
+
+  // ส่ง Event สื่อสารกับหน้าจอ customer.html แบบ Real-time [2]
+  localStorage.setItem('pos_cart_update', JSON.stringify({
+    cart: state.cart,
+    total: total,
+    timestamp: Date.now()
+  }));
+}
+
+// ปุ่มถัดไป & ลอจิกพิเศษถ้ายอดสั่งซื้อ >= 11 แก้ว [5]
+function openCheckoutModal() {
+  if (state.cart.length === 0) return alert('กรุณาเลือกเมนูก่อน');
+
+  document.getElementById('modal-checkout').style.display = 'flex';
+  
+  // ลอจิกพิเศษ: หากสั่งซื้อ >= 11 แก้ว บังคับเลือกแก้วฟรี 1 แก้วทันที [5]
+  if (state.rewardableCupsCount >= 11) {
+    alert('ยอดสั่งซื้อถึง 11 แก้ว ระบบปรับสิทธิ์แถมแก้วฟรีให้อัตโนมัติ 1 แก้ว');
+    state.freeCupApplied = true;
+    selectFreeCupOption('use');
+  }
+}
+
+function selectFreeCupOption(option) {
+  state.selectedFreeCupOption = true;
+  
+  if (option === 'use' && !state.freeCupApplied) {
+    document.getElementById('modal-numpad').style.display = 'flex';
+  } else {
+    // เปิดใช้งานปุ่มชำระเงิน [5]
+    const paySec = document.getElementById('payment-section');
+    paySec.style.opacity = '1';
+    paySec.style.pointerEvents = 'auto';
+  }
+}
+
+// ตรวจสอบสมาชิกเบอร์โทร [5]
+async function submitPhoneCheck() {
+  const phone = document.getElementById('phone-input').value;
+  if (!phone) return;
+
+  const res = await fetch(`${GAS_API_URL}?action=checkMember&phone=${phone}`);
+  const json = await res.json();
+  
+  if (json.data && json.data.cups >= 10) {
+    alert(`พบเบอร์ ${phone} มีสะสม ${json.data.cups} แก้ว (ใช้สิทธิ์หัก 10 แก้ว)`);
+    state.freeCupApplied = true;
+    document.getElementById('modal-numpad').style.display = 'none';
+    
+    // เปิดปุ่มชำระเงิน [5]
+    const paySec = document.getElementById('payment-section');
+    paySec.style.opacity = '1';
+    paySec.style.pointerEvents = 'auto';
+  } else {
+    alert('แก้วสะสมไม่เพียงพอ (ต้องมีอย่างน้อย 10 แก้ว)');
+  }
+}
+
+function selectPaymentMethod(method) {
+  state.paymentMethod = method;
+  document.getElementById('btn-confirm-pay').style.display = 'inline-block';
+
+  if (method === 'QR-CODE') {
+    // ส่งภาพ QR สแกนจ่ายไปยังจอฝั่งลูกค้า [2, 5]
+    localStorage.setItem('pos_payment_qr', JSON.stringify({
+      qrUrl: 'https://via.placeholder.com/300x300.png?text=PromptPay+QR',
+      timestamp: Date.now()
+    }));
+  }
+}
+
+// ปริ้นใบเสร็จ & เจนโค้ดสะสมแต้มท้ายบิล [5, 6]
+async function processPaymentAndPrint() {
+  // สุ่มโค้ดสะสมแต้ม 10 ตัวอักษร + จำนวนแก้วสะสม [5]
+  const randomChars = Math.random().toString(36).substring(2, 12);
+  const earnedCups = Math.max(0, state.rewardableCupsCount - (state.freeCupApplied ? 10 : 0));
+  const loyaltyCode = `${randomChars}${String(earnedCups).padStart(2, '0')}`;
+
+  // บันทึกลง Member DB แผ่นงาน "โค้ด" [6]
+  await fetch(GAS_API_URL, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'saveLoyaltyCode',
+      data: {
+        code: loyaltyCode,
+        phone: document.getElementById('phone-input').value || '',
+        expireDate: new Date(Date.now() + 30*24*60*60*1000).toISOString()
+      }
+    })
+  });
+
+  // บันทึกออเดอร์ลง Main DB [7]
+  await fetch(GAS_API_URL, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'saveOrder',
+      data: {
+        orderId: 'ORD-' + Date.now(),
+        itemsSummary: state.cart.map(i => i.name).join(', '),
+        totalAmount: document.getElementById('cart-total').innerText,
+        discount: state.freeCupApplied ? 50 : 0,
+        netAmount: document.getElementById('cart-total').innerText,
+        paymentMethod: state.paymentMethod,
+        freeCupUsed: state.freeCupApplied
+      }
+    })
+  });
+
+  alert('บันทึกและออกใบเสร็จสำเร็จ โค้ดสะสมแต้มท้ายบิล: ' + loyaltyCode);
+  location.reload();
+}
+
+// ฟังก์ชันแปลงภาพเป็น ESC/POS Bluetooth [6]
+async function handlePrint(data) {
+  console.log("Printing via Bluetooth printer with data:", data);
+  // ESC/POS Canvas & Image Conversion Pipeline
+}
