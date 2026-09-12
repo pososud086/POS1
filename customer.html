@@ -2,33 +2,76 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>Customer Display</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>หน้าจอลูกค้า</title>
   <style>
-    body { background-color: #121212; color: white; font-family: sans-serif; padding: 40px; }
-    h1 { color: #ff9800; text-align: center; font-size: 48px; }
-    .item { font-size: 32px; display: flex; justify-content: space-between; border-bottom: 2px solid #333; padding: 20px 0; }
-    .total { font-size: 64px; color: #d32f2f; font-weight: bold; text-align: right; margin-top: 40px; }
+    body {
+      background-color: #121212; color: #fff; font-family: 'Sarabun', sans-serif;
+      margin: 0; display: flex; height: 100vh;
+    }
+    .media-section { flex: 2; background: url('https://images.unsplash.com/photo-1515823662972-da6a2b4d3002?auto=format&fit=crop&q=80') center/cover; }
+    .order-section { flex: 1; background: #1e1e1e; padding: 40px; display: flex; flex-direction: column; border-left: 5px solid #ff6d00; }
+    
+    h1 { text-align: center; color: #ff6d00; font-size: 36px; margin-top: 0; }
+    .list { flex: 1; overflow-y: auto; font-size: 24px; }
+    .item { display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px dashed #444; }
+    
+    .summary { margin-top: 20px; padding-top: 20px; border-top: 2px solid #555; }
+    .row { display: flex; justify-content: space-between; font-size: 28px; margin-bottom: 15px; }
+    .total { font-size: 40px; font-weight: bold; color: #ff6d00; }
+    .discount { color: #4caf50; }
   </style>
 </head>
 <body>
-  <h1>รายการของท่าน</h1>
-  <div id="display-items"></div>
-  <div class="total">รวมสุทธิ: <span id="display-total">0</span> ฿</div>
+
+  <div class="media-section">
+    <!-- ใส่สไลด์โชว์โปรโมชั่นร้านได้ตรงนี้ -->
+  </div>
+
+  <div class="order-section">
+    <h1>รายการสั่งซื้อของคุณ</h1>
+    <div class="list" id="cdsList"></div>
+    
+    <div class="summary">
+      <div class="row discount" id="cdsDiscountRow" style="display:none;">
+        <span>ส่วนลด (แก้วฟรี)</span><span id="cdsDiscount">-฿0</span>
+      </div>
+      <div class="row total">
+        <span>ยอดชำระ</span><span id="cdsTotal">฿0</span>
+      </div>
+    </div>
+  </div>
 
   <script>
-    // ดึงข้อมูลจาก LocalStorage แบบเรียลไทม์
-    window.addEventListener('storage', function(e) {
-      if (e.key === 'pos_cart_sync') {
-        const data = JSON.parse(e.newValue);
-        let html = '';
-        data.items.forEach(item => {
-          html += `<div class="item"><span>${item.name} x${item.qty}</span><span>${item.price * item.qty} ฿</span></div>`;
-        });
-        if (data.discount > 0) {
-          html += `<div class="item" style="color:#4caf50;"><span>ส่วนลด</span><span>-${data.discount} ฿</span></div>`;
-        }
-        document.getElementById('display-items').innerHTML = html;
-        document.getElementById('display-total').innerText = data.total;
+    function updateDisplay(data) {
+      if (!data) return;
+      
+      const list = document.getElementById('cdsList');
+      list.innerHTML = data.cart.map(item => `
+        <div class="item">
+          <span>${item.Name}</span>
+          <span>฿${item.Price}</span>
+        </div>
+      `).join('');
+
+      document.getElementById('cdsTotal').innerText = '฿' + (data.total - data.discount);
+      
+      const discountRow = document.getElementById('cdsDiscountRow');
+      if(data.discount > 0) {
+        discountRow.style.display = 'flex';
+        document.getElementById('cdsDiscount').innerText = '-฿' + data.discount;
+      } else {
+        discountRow.style.display = 'none';
+      }
+    }
+
+    // โหลดข้อมูลล่าสุด
+    updateDisplay(JSON.parse(localStorage.getItem('cds_data')));
+
+    // ดักจับการเปลี่ยนแปลงจากหน้า index.html ทันที
+    window.addEventListener('storage', (e) => {
+      if(e.key === 'cds_data') {
+        updateDisplay(JSON.parse(e.newValue));
       }
     });
   </script>
