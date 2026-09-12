@@ -1,184 +1,442 @@
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>POS Touch System</title>
-    <link rel="stylesheet" href="style.css">
+    <title>POS System - พนักงาน</title>
+    <style>
+        :root { --bg: #121212; --surface: #1e1e1e; --primary: #E63946; --secondary: #F4A261; --text: #f1faee; }
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+        
+        /* Layout */
+        .left-panel { flex: 7; display: flex; flex-direction: column; padding: 20px; border-right: 1px solid #333; }
+        .right-panel { flex: 3; display: flex; flex-direction: column; padding: 20px; background: var(--surface); position: relative; }
+        
+        /* Header & Print Button */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-print-setup { background: #333; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; }
+        
+        /* Categories & Menus */
+        .categories { display: flex; gap: 10px; overflow-x: auto; margin-bottom: 20px; padding-bottom: 10px; }
+        .cat-btn { background: #333; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; white-space: nowrap; transition: 0.3s; }
+        .cat-btn.active, .cat-btn:hover { background: var(--primary); }
+        
+        .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; overflow-y: auto; }
+        .menu-item { background: #2a2a2a; padding: 15px; border-radius: 12px; text-align: center; cursor: pointer; transition: 0.3s; border: 2px solid transparent; }
+        .menu-item:hover { border-color: var(--secondary); transform: translateY(-3px); }
+        .menu-price { color: var(--secondary); font-weight: bold; margin-top: 10px; }
+
+        /* Cart */
+        .cart-list { flex: 1; overflow-y: auto; margin-bottom: 20px; }
+        .cart-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #444; }
+        .cart-item-info { flex: 1; }
+        .cart-addon { font-size: 0.8em; color: #aaa; }
+        .cart-total-section { border-top: 2px dashed #555; padding-top: 15px; }
+        .summary-line { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 1.2em; }
+        
+        .btn-main { background: var(--primary); color: white; border: none; padding: 15px; border-radius: 8px; font-size: 1.2em; cursor: pointer; width: 100%; transition: 0.3s; }
+        .btn-main:hover { background: #d62828; }
+        .btn-secondary { background: var(--secondary); color: #121212; border: none; padding: 15px; border-radius: 8px; font-size: 1.2em; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; }
+
+        /* Modals */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 100; }
+        .modal-content { background: var(--surface); padding: 30px; border-radius: 15px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; }
+        .modal h2 { margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 10px; }
+        .addon-group { margin-bottom: 15px; }
+        .addon-option { display: flex; justify-content: space-between; padding: 8px; background: #2a2a2a; margin-bottom: 5px; border-radius: 5px; }
+        
+        /* Printing styles */
+        @media print {
+            body > *:not(#print-area) { display: none; }
+            body { background: white; color: black; display: block; }
+            #print-area { display: block !important; position: absolute; left: 0; top: 0; width: 58mm; margin: 0; padding: 0; font-family: 'Courier New', Courier, monospace; font-size: 12px; }
+            .receipt { width: 58mm; }
+            .receipt-logo { width: 80%; display: block; margin: 0 auto 10px auto; }
+            .receipt-text-center { text-align: center; }
+            .receipt-divider { border-bottom: 1px dashed black; margin: 5px 0; }
+            .receipt-table { width: 100%; text-align: left; margin-bottom: 10px; }
+            .receipt-table th, .receipt-table td { padding: 2px 0; }
+            .receipt-table .right { text-align: right; }
+        }
+        #print-area { display: none; }
+    </style>
 </head>
 <body>
-    <header>
-        <div class="logo-container">
-            <img id="shop-logo" src="https://via.placeholder.com/50" alt="Logo">
+
+    <!-- Main UI -->
+    <div class="left-panel">
+        <div class="header">
             <h2>POS System</h2>
+            <button class="btn-print-setup" onclick="alert('กรุณาตั้งค่าเครื่องปริ้นเริ่มต้นเป็นเครื่องพิมพ์สลิป 58mm ในระบบของคุณ')">🖨️ เครื่องปริ้น</button>
         </div>
-        <nav>
-            <button onclick="switchTab('pos')" class="active">หน้าร้าน</button>
-            <button onclick="switchTab('dashboard')">แดชบอร์ด</button>
-            <button onclick="switchTab('expense')">รายจ่าย</button>
-            <button onclick="openSettings()">⚙️ ตั้งค่า</button>
-        </nav>
-    </header>
+        <div class="categories" id="categories-container">กำลังโหลด...</div>
+        <div class="menu-grid" id="menu-container"></div>
+    </div>
 
-    <!-- POS TAB -->
-    <main id="pos-tab" class="tab-content active">
-        <div class="left-panel">
-            <div id="category-list" class="scroll-x"></div>
-            <div id="menu-grid" class="scroll-y"></div>
+    <div class="right-panel">
+        <h2>รายการที่เลือก</h2>
+        <div class="cart-list" id="cart-list"></div>
+        <div class="cart-total-section">
+            <div class="summary-line"><span>ส่วนลด</span><span id="discount-display">0฿</span></div>
+            <div class="summary-line" style="font-weight: bold; color: var(--secondary);"><span>รวมทั้งหมด</span><span id="total-display">0฿</span></div>
+            <button class="btn-main" onclick="openFreeCupModal()">ถัดไป</button>
         </div>
-        <div class="right-panel cart-section">
-            <h3>รายการสั่งซื้อ</h3>
-            <div id="cart-items" class="scroll-y"></div>
-            <div class="cart-summary">
-                <div class="total-row"><span>ยอดรวม:</span> <span id="cart-total">0</span> <span>บาท</span></div>
-                <button class="btn-large btn-primary" onclick="proceedCheckout()">ถัดไป ➔</button>
-            </div>
-        </div>
-    </main>
+    </div>
 
-    <!-- DASHBOARD TAB -->
-    <main id="dashboard-tab" class="tab-content" style="display:none;">
-        <div class="dash-header">
-            <h2>สรุปยอดขาย</h2>
-            <input type="date" id="dash-date" onchange="renderDashboard()">
-            <select id="pdf-filter">
-                <option value="all">ทั้งหมด</option>
-                <option value="เงินสด">เฉพาะเงินสด</option>
-                <option value="QR-CODE">เฉพาะ QR-CODE</option>
-            </select>
-            <button class="btn-primary" onclick="exportPDF()">📄 พิมพ์รายงาน PDF</button>
-        </div>
-        <div class="dash-stats">
-            <div class="stat-card"><h3>รายรับ (บาท)</h3><h1 id="stat-income">0</h1></div>
-            <div class="stat-card"><h3>รายจ่าย (บาท)</h3><h1 id="stat-expense">0</h1></div>
-            <div class="stat-card"><h3>กำไร/ขาดทุน (บาท)</h3><h1 id="stat-profit">0</h1></div>
-        </div>
-        <canvas id="salesChart" width="400" height="150"></canvas>
-    </main>
-
-    <!-- EXPENSE TAB -->
-    <main id="expense-tab" class="tab-content" style="display:none;">
-        <div class="form-container">
-            <h2>บันทึกรายจ่าย</h2>
-            <input type="text" id="exp-detail" placeholder="รายละเอียดค่าใช้จ่าย" class="input-lg">
-            <input type="number" id="exp-amount" placeholder="จำนวนเงิน (บาท)" class="input-lg">
-            <button class="btn-large btn-danger" onclick="saveExpense()">บันทึกรายจ่าย</button>
-        </div>
-    </main>
-
-    <!-- MODALS -->
     <!-- Addon Modal -->
-    <div id="addon-modal" class="modal">
+    <div class="modal" id="addon-modal">
         <div class="modal-content">
-            <h2 id="modal-menu-name">เลือกตัวเลือกเพิ่มเติม</h2>
-            <div id="addon-options"></div>
-            <div class="modal-actions">
-                <button class="btn-secondary" onclick="closeModal('addon-modal')">ยกเลิก</button>
-                <button class="btn-primary" onclick="addToCartFromModal()">ยืนยัน</button>
+            <h2 id="addon-modal-title">เลือก แอดออน</h2>
+            <div id="addon-modal-body"></div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn-main" style="background:#555;" onclick="closeModal('addon-modal')">ยกเลิก</button>
+                <button class="btn-main" onclick="confirmAddon()">ตกลง</button>
             </div>
         </div>
     </div>
 
     <!-- Free Cup Modal -->
-    <div id="free-cup-modal" class="modal">
-        <div class="modal-content text-center">
-            <h2>สิทธิ์แก้วฟรี</h2>
-            <p>ลูกค้าต้องการใช้สิทธิ์แถมแก้วฟรีหรือไม่?</p>
-            <div class="modal-actions-center">
-                <button class="btn-large btn-primary" onclick="selectFreeCupChoice('yes')">🎁 แถมแก้วฟรี</button>
-                <button class="btn-large btn-secondary" onclick="selectFreeCupChoice('no')">ไม่มี</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Numpad Phone Modal -->
-    <div id="numpad-modal" class="modal">
+    <div class="modal" id="free-modal">
         <div class="modal-content">
-            <h2>กรอกเบอร์โทรศัพท์สมาชิก</h2>
-            <input type="text" id="numpad-display" readonly class="input-lg text-center">
-            <div class="numpad-grid">
-                <button onclick="numpad('1')">1</button><button onclick="numpad('2')">2</button><button onclick="numpad('3')">3</button>
-                <button onclick="numpad('4')">4</button><button onclick="numpad('5')">5</button><button onclick="numpad('6')">6</button>
-                <button onclick="numpad('7')">7</button><button onclick="numpad('8')">8</button><button onclick="numpad('9')">9</button>
-                <button class="btn-danger" onclick="numpad('clear')">C</button><button onclick="numpad('0')">0</button><button class="btn-primary" onclick="checkMemberPhone()">ตกลง</button>
+            <h2>เลือกแก้วฟรี (ส่วนลด)</h2>
+            <div id="free-modal-body"></div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn-main" style="background:#555;" onclick="skipFree()">ข้าม / ไม่เลือก</button>
+                <button class="btn-main" onclick="confirmFree()">ยืนยัน</button>
             </div>
-            <button class="btn-large btn-secondary" style="margin-top:10px; width:100%" onclick="closeModal('numpad-modal'); openModal('payment-modal')">ข้าม</button>
-        </div>
-    </div>
-
-    <!-- Select Free Item Modal -->
-    <div id="select-free-modal" class="modal">
-        <div class="modal-content">
-            <h2>เลือกเมนูที่ต้องการรับฟรี (หัก 10 แต้ม)</h2>
-            <div id="free-item-list" class="scroll-y"></div>
         </div>
     </div>
 
     <!-- Payment Modal -->
-    <div id="payment-modal" class="modal">
-        <div class="modal-content text-center">
-            <h2>วิธีชำระเงิน</h2>
-            <h1 id="pay-total-display">0 บาท</h1>
-            <div class="modal-actions-center">
-                <button class="btn-large btn-success" onclick="processPayment('เงินสด')">💵 เงินสด</button>
-                <button class="btn-large btn-primary" onclick="processPayment('QR-CODE')">📱 QR-CODE</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Confirm QR Payment Modal -->
-    <div id="confirm-qr-modal" class="modal">
-        <div class="modal-content text-center">
-            <h2>รอการชำระเงินจากลูกค้า...</h2>
-            <p>หน้าจอฝั่งลูกค้ากำลังแสดง QR Code</p>
-            <button class="btn-large btn-success" onclick="finalizeOrder('QR-CODE')" style="margin-top:20px;">ยืนยันการชำระเงิน (ถัดไป)</button>
-        </div>
-    </div>
-
-    <!-- Print Receipt Modal -->
-    <div id="print-modal" class="modal">
-        <div class="modal-content text-center">
-            <h2>ชำระเงินสำเร็จ!</h2>
-            <p id="point-code-display" style="font-size: 1.5em; color: #F57C00; font-weight:bold;"></p>
-            <button class="btn-large btn-primary" onclick="printStaffReceipt()">🖨️ ปริ้นใบเสร็จร้านค้า (จบออเดอร์)</button>
-        </div>
-    </div>
-
-    <!-- Settings Modal -->
-    <div id="settings-modal" class="modal">
-        <div class="modal-content" style="width: 80%; max-width: 800px; height: 80vh; overflow-y:auto;">
-            <h2>ตั้งค่าระบบ</h2>
-            <div class="form-group">
-                <label>URL โลโก้ร้าน:</label>
-                <input type="text" id="set-logo" class="input-lg">
-            </div>
-            <div class="form-group">
-                <label>ประเภทปริ้นเตอร์:</label>
-                <select id="set-printer" class="input-lg">
-                    <option value="bluetooth">Bluetooth</option>
-                    <option value="usb">USB</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>URL ของ Google Web App (Backend API):</label>
-                <input type="text" id="set-api" class="input-lg" placeholder="https://script.google.com/macros/s/..../exec">
-            </div>
+    <div class="modal" id="payment-modal">
+        <div class="modal-content" style="text-align: center;">
+            <h2>ชำระเงิน <span id="pay-amount" style="color: var(--secondary);"></span></h2>
+            <button class="btn-main" style="margin-bottom: 15px;" onclick="processPayment('เงินสด')">💵 เงินสด</button>
+            <button class="btn-secondary" onclick="processPayment('QRCODE')">📱 QR Code (โชว์จอลูกค้า)</button>
             
-            <h3>โครงสร้าง JSON (สำหรับผู้เชี่ยวชาญ)</h3>
-            <textarea id="set-json-data" style="width:100%; height:200px; background:#1E1E1E; color:#fff;"></textarea>
-            <p style="font-size:12px; color:#aaa;">*กรุณาแก้ไข JSON สำหรับ Category, Menu, Addon</p>
-            
-            <div class="modal-actions" style="margin-top:20px;">
-                <button class="btn-secondary" onclick="closeModal('settings-modal')">ปิด</button>
-                <button class="btn-primary" onclick="saveSettings()">💾 บันทึกตั้งค่า</button>
+            <div id="print-controls" style="display: none; margin-top: 20px; border-top: 1px solid #444; padding-top: 20px;">
+                <button class="btn-secondary" id="btn-print-cust" onclick="printReceipt('customer')" style="margin-bottom:10px;">🖨️ ปริ้นใบเสร็จลูกค้า</button>
+                <button class="btn-main" onclick="printReceipt('shop')">🖨️ ปริ้นใบเสร็จร้านค้า & จบออเดอร์</button>
             </div>
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="app.js"></script>
+    <!-- Print Area -->
+    <div id="print-area">
+        <div id="receipt-content" class="receipt"></div>
+    </div>
+
+    <script>
+        // *** ใส่ URL ของ Google Apps Script ของคุณที่นี่ ***
+        const API_URL = 'https://script.google.com/macros/s/AKfycbyTsblHupSi2rU2Ue4kXRRpaH-_EfncjOM2bLt41B3fKOnJOCjnyeinaGoSMo5h9VSsXQ/exec';
+
+        let appData = { menus: [], addons: {}, lastOrderId: 0 };
+        let currentCategory = '';
+        let cart = [];
+        let tempItem = null;
+        let currentOrderId = 1;
+
+        // โหลดข้อมูลตอนเปิดหน้า
+        window.onload = async () => {
+            try {
+                const res = await fetch(`${API_URL}?action=getInitData`);
+                appData = await res.json();
+                currentOrderId = appData.lastOrderId + 1;
+                renderCategories();
+                updateCustomerDisplay();
+            } catch (err) {
+                document.getElementById('categories-container').innerHTML = 'เกิดข้อผิดพลาดในการโหลดข้อมูล';
+            }
+        };
+
+        function renderCategories() {
+            const container = document.getElementById('categories-container');
+            const cats = [...new Set(appData.menus.map(m => m.category))];
+            container.innerHTML = '';
+            cats.forEach((cat, index) => {
+                const btn = document.createElement('button');
+                btn.className = `cat-btn ${index === 0 ? 'active' : ''}`;
+                btn.innerText = cat;
+                btn.onclick = () => {
+                    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    renderMenus(cat);
+                };
+                container.appendChild(btn);
+            });
+            if(cats.length > 0) renderMenus(cats[0]);
+        }
+
+        function renderMenus(category) {
+            const container = document.getElementById('menu-container');
+            container.innerHTML = '';
+            const items = appData.menus.filter(m => m.category === category);
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'menu-item';
+                div.innerHTML = `<div>${item.name}</div><div class="menu-price">${item.price}฿</div>`;
+                div.onclick = () => selectItem(item);
+                container.appendChild(div);
+            });
+        }
+
+        function selectItem(item) {
+            if (item.addonId && item.addonId.length > 0) {
+                tempItem = { ...item, selectedAddons: [] };
+                openAddonModal(item);
+            } else {
+                addToCart({ ...item, selectedAddons: [], cartId: Date.now() });
+            }
+        }
+
+        function openAddonModal(item) {
+            document.getElementById('addon-modal-title').innerText = item.name;
+            const body = document.getElementById('addon-modal-body');
+            body.innerHTML = '';
+            
+            item.addonId.forEach(aId => {
+                const addon = appData.addons[aId];
+                if (addon) {
+                    const group = document.createElement('div');
+                    group.className = 'addon-group';
+                    group.innerHTML = `<h3>${addon.name}</h3>`;
+                    addon.options.forEach(opt => {
+                        const optDiv = document.createElement('div');
+                        optDiv.className = 'addon-option';
+                        optDiv.innerHTML = `
+                            <label><input type="checkbox" value='${JSON.stringify(opt)}' class="addon-chk"> ${opt.name}</label>
+                            <span>+${opt.price}฿</span>
+                        `;
+                        group.appendChild(optDiv);
+                    });
+                    body.appendChild(group);
+                }
+            });
+            document.getElementById('addon-modal').style.display = 'flex';
+        }
+
+        function confirmAddon() {
+            const checkboxes = document.querySelectorAll('.addon-chk:checked');
+            checkboxes.forEach(chk => {
+                tempItem.selectedAddons.push(JSON.parse(chk.value));
+            });
+            tempItem.cartId = Date.now();
+            addToCart(tempItem);
+            closeModal('addon-modal');
+        }
+
+        function addToCart(item) {
+            item.isFree = false;
+            cart.push(item);
+            renderCart();
+        }
+
+        function renderCart() {
+            const list = document.getElementById('cart-list');
+            list.innerHTML = '';
+            let total = 0;
+            let discount = 0;
+
+            cart.forEach((item, index) => {
+                let itemTotal = item.price;
+                let addonText = '';
+                item.selectedAddons.forEach(a => {
+                    itemTotal += a.price;
+                    addonText += `+ ${a.name} `;
+                });
+
+                if(item.isFree) {
+                    discount += itemTotal;
+                } else {
+                    total += itemTotal;
+                }
+
+                list.innerHTML += `
+                    <div class="cart-item">
+                        <div class="cart-item-info">
+                            <div>${item.name} ${item.isFree ? '<span style="color:#E63946">(ฟรี)</span>' : ''}</div>
+                            <div class="cart-addon">${addonText}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div>${item.isFree ? '0' : itemTotal}฿</div>
+                            <button onclick="cart.splice(${index}, 1); renderCart();" style="background:red; color:white; border:none; border-radius:4px; margin-top:5px; cursor:pointer;">ลบ</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('discount-display').innerText = discount + '฿';
+            document.getElementById('total-display').innerText = total + '฿';
+            updateCustomerDisplay(total, discount);
+        }
+
+        function openFreeCupModal() {
+            if(cart.length === 0) return alert('กรุณาเลือกสินค้าก่อน');
+            const body = document.getElementById('free-modal-body');
+            body.innerHTML = '';
+            cart.forEach((item, i) => {
+                body.innerHTML += `
+                    <div class="addon-option">
+                        <label><input type="checkbox" id="free-chk-${i}" ${item.isFree ? 'checked' : ''}> ${item.name}</label>
+                    </div>
+                `;
+            });
+            document.getElementById('free-modal').style.display = 'flex';
+        }
+
+        function confirmFree() {
+            cart.forEach((item, i) => {
+                item.isFree = document.getElementById(`free-chk-${i}`).checked;
+            });
+            renderCart();
+            closeModal('free-modal');
+            openPaymentModal();
+        }
+
+        function skipFree() {
+            cart.forEach(item => item.isFree = false);
+            renderCart();
+            closeModal('free-modal');
+            openPaymentModal();
+        }
+
+        function openPaymentModal() {
+            const total = document.getElementById('total-display').innerText;
+            document.getElementById('pay-amount').innerText = total;
+            document.getElementById('print-controls').style.display = 'none';
+            document.getElementById('payment-modal').style.display = 'flex';
+            
+            // ปิด QR Code ที่จอลูกค้าถ้าเปิดไว้
+            let state = JSON.parse(localStorage.getItem('pos_state'));
+            state.showQR = false;
+            localStorage.setItem('pos_state', JSON.stringify(state));
+        }
+
+        let currentPaymentMethod = '';
+        function processPayment(method) {
+            currentPaymentMethod = method;
+            document.getElementById('print-controls').style.display = 'block';
+            
+            if (method === 'QRCODE') {
+                let state = JSON.parse(localStorage.getItem('pos_state'));
+                state.showQR = true;
+                localStorage.setItem('pos_state', JSON.stringify(state));
+            } else {
+                // เงินสด สั่งปริ้นลูกค้าอัตโนมัติ
+                printReceipt('customer');
+            }
+        }
+
+        function generateReceiptHTML(type) {
+            let total = 0, discount = 0;
+            let itemsHTML = '';
+            
+            // นับจำนวน (Grouping สำหรับปริ้น)
+            let printCart = {};
+            cart.forEach(item => {
+                let itemTotal = item.price;
+                item.selectedAddons.forEach(a => itemTotal += a.price);
+                if(item.isFree) discount += itemTotal; else total += itemTotal;
+                
+                let key = item.name + (item.isFree ? 'FREE' : '');
+                if(!printCart[key]) printCart[key] = { name: item.name + (item.isFree ? '(ฟรี)' : ''), qty: 0, price: item.isFree ? 0 : itemTotal };
+                printCart[key].qty++;
+            });
+
+            for(let key in printCart) {
+                itemsHTML += `
+                    <tr>
+                        <td>x${printCart[key].qty} ${printCart[key].name}</td>
+                        <td class="right">${printCart[key].price * printCart[key].qty}฿</td>
+                    </tr>
+                `;
+            }
+
+            if(type === 'customer') {
+                return `
+                    <img src="https://img2.pic.in.th/pic/4fde4078-4c1c-4685-b6ba-8278601c1508.png" class="receipt-logo">
+                    <div class="receipt-text-center">เติมมัทฉะ</div>
+                    <div class="receipt-divider"></div>
+                    <div>ออเดอร์ #${currentOrderId}</div>
+                    <table class="receipt-table">
+                        <tr><th>รายการ</th><th class="right">ราคา</th></tr>
+                        ${itemsHTML}
+                    </table>
+                    <div class="receipt-divider"></div>
+                    <table class="receipt-table">
+                        <tr><td>ส่วนลด</td><td class="right">${discount}฿</td></tr>
+                        <tr><td><b>รวม</b></td><td class="right"><b>${total}฿</b></td></tr>
+                    </table>
+                    <div class="receipt-text-center" style="margin-top:10px;">
+                        ขอบคุณลูกค้าทุกท่านนะคะ<br>Tel : 083-117-8690
+                    </div>
+                `;
+            } else {
+                return `
+                    <div>ออเดอร์ที่ #${currentOrderId} (${currentPaymentMethod})</div>
+                    <div class="receipt-divider"></div>
+                    <table class="receipt-table">
+                        <tr><th>รายการ</th><th class="right">ราคา</th></tr>
+                        ${itemsHTML}
+                    </table>
+                    <div class="receipt-divider"></div>
+                    <table class="receipt-table">
+                        <tr><td>ส่วนลด</td><td class="right">${discount}฿</td></tr>
+                        <tr><td><b>รวม</b></td><td class="right"><b>${total}฿</b></td></tr>
+                    </table>
+                `;
+            }
+        }
+
+        function printReceipt(type) {
+            document.getElementById('receipt-content').innerHTML = generateReceiptHTML(type);
+            window.print();
+
+            if (type === 'shop') {
+                saveOrderAndFinish();
+            }
+        }
+
+        async function saveOrderAndFinish() {
+            let total = 0;
+            cart.forEach(item => {
+                let itemTotal = item.price;
+                item.selectedAddons.forEach(a => itemTotal += a.price);
+                if(!item.isFree) total += itemTotal;
+            });
+
+            const payload = {
+                action: 'saveOrder',
+                orderId: currentOrderId,
+                total: total,
+                paymentMethod: currentPaymentMethod
+            };
+
+            try {
+                // บันทึกลง Google Sheet
+                await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                });
+                
+                // จบออเดอร์ รีเซ็ตระบบ
+                currentOrderId++;
+                cart = [];
+                renderCart();
+                closeModal('payment-modal');
+                alert('บันทึกออเดอร์สำเร็จเรียบร้อย');
+            } catch (err) {
+                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+            }
+        }
+
+        function updateCustomerDisplay(total = 0, discount = 0) {
+            const state = { cart, total, discount, showQR: false };
+            localStorage.setItem('pos_state', JSON.stringify(state));
+        }
+
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    </script>
 </body>
 </html>
