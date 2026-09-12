@@ -9,21 +9,22 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
+  <!-- Header Navbar -->
   <div class="navbar">
-    <div class="logo-container">
-      <img id="store-logo" src="" alt="Store Logo">
+    <div class="logo-container" style="display:flex; align-items:center;">
+      <img id="store-logo" src="" alt="Logo" style="height:45px; display:none; border-radius:6px;">
       <span id="store-title" style="font-size: 1.4rem; font-weight: bold; margin-left: 10px;">POS Café</span>
     </div>
     <div>
       <button class="btn-touch btn-warning" onclick="switchView('pos')">หน้าร้าน</button>
       <button class="btn-touch btn-primary" onclick="switchView('expense')">รายจ่าย</button>
       <button class="btn-touch btn-warning" onclick="switchView('dashboard')">แดชบอร์ด</button>
-      <button class="btn-touch" style="background:#444;" onclick="openSettingsModal()">⚙️</button>
+      <button class="btn-touch" style="background:#444;" onclick="openSettingsModal()">⚙️ ตั้งค่า</button>
     </div>
   </div>
 
-  <!-- หน้าจอ POS หลัก -->
-  <div id="view-pos" class="pos-container">
+  <!-- 1. หน้าจอหลัก POS หน้าร้าน -->
+  <div id="view-pos" class="pos-container view-section">
     <div class="menu-section">
       <div id="category-bar" class="category-bar"></div>
       <div id="menu-grid" class="menu-grid"></div>
@@ -39,19 +40,98 @@
     </div>
   </div>
 
-  <!-- Modal ชำระเงิน & แถมแก้วฟรี -->
+  <!-- 2. หน้าจอบันทึกรายจ่าย -->
+  <div id="view-expense" class="view-section" style="display:none; padding: 20px; max-width: 600px; margin: auto;">
+    <h2>บันทึกรายจ่ายประจำวัน</h2>
+    <div style="display: flex; flex-direction: column; gap: 15px;">
+      <input type="text" id="exp-title" placeholder="รายการรายจ่าย (เช่น ค่าวัตถุดิบ, ค่าน้ำแข็ง)" style="padding: 12px; font-size: 1.1rem;">
+      <input type="number" id="exp-amount" placeholder="จำนวนเงิน (บาท)" style="padding: 12px; font-size: 1.1rem;">
+      <select id="exp-category" style="padding: 12px; font-size: 1.1rem;">
+        <option value="วัตถุดิบ">วัตถุดิบ</option>
+        <option value="สาธารณูปโภค">ค่าน้ำ/ค่าไฟ</option>
+        <option value="อุปกรณ์">อุปกรณ์</option>
+        <option value="อื่นๆ">อื่นๆ</option>
+      </select>
+      <input type="text" id="exp-note" placeholder="หมายเหตุเพิ่มเติม" style="padding: 12px; font-size: 1.1rem;">
+      <button class="btn-touch btn-primary" onclick="saveExpenseUI()">บันทึกรายจ่าย</button>
+    </div>
+  </div>
+
+  <!-- 3. หน้าจอแดชบอร์ด & รายงาน PDF -->
+  <div id="view-dashboard" class="view-section" style="display:none; padding: 20px;">
+    <h2>แดชบอร์ดสรุปยอดขาย & ออกรายงานภาษี</h2>
+    <div style="display:flex; gap:15px; margin-bottom:20px; align-items:center; flex-wrap:wrap;">
+      <label>เริ่มต้น: <input type="date" id="dash-start" style="padding:8px; font-size:1rem;"></label>
+      <label>สิ้นสุด: <input type="date" id="dash-end" style="padding:8px; font-size:1rem;"></label>
+      <button class="btn-touch btn-warning" style="padding:10px 20px;" onclick="loadDashboardData()">ดึงข้อมูล</button>
+    </div>
+
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:15px; margin-bottom:20px;">
+      <div style="background:#1e1e1e; padding:15px; border-radius:10px; text-align:center;">
+        <h3>ยอดขายรวม</h3>
+        <p id="dash-total-sales" style="font-size:2rem; color:#F57C00;">0 ฿</p>
+      </div>
+      <div style="background:#1e1e1e; padding:15px; border-radius:10px; text-align:center;">
+        <h3>รายจ่ายรวม</h3>
+        <p id="dash-total-exp" style="font-size:2rem; color:#D32F2F;">0 ฿</p>
+      </div>
+      <div style="background:#1e1e1e; padding:15px; border-radius:10px; text-align:center;">
+        <h3>กำไรสุทธิ</h3>
+        <p id="dash-net-profit" style="font-size:2rem; color:#4CAF50;">0 ฿</p>
+      </div>
+    </div>
+
+    <div style="background:#1e1e1e; padding:20px; border-radius:12px;">
+      <h3>พิมพ์รายงาน PDF (ยื่นภาษี)</h3>
+      <div style="display:flex; gap:10px; margin-top:10px;">
+        <button class="btn-touch btn-primary" onclick="exportPDFReport('ALL')">ออกรายงาน (ทั้งหมด)</button>
+        <button class="btn-touch btn-warning" onclick="exportPDFReport('CASH')">เฉพาะ เงินสด</button>
+        <button class="btn-touch" style="background:#008CBA;" onclick="exportPDFReport('QR-CODE')">เฉพาะ QR-CODE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 1: เลือก Add-ons เมนู -->
+  <div id="modal-addons" class="modal-overlay" style="display:none;">
+    <div class="modal-content">
+      <h3 id="addon-menu-title">ตัวเลือกเพิ่มเติม</h3>
+      <div id="addon-list-container" style="max-height:300px; overflow-y:auto; margin-bottom:15px;"></div>
+      <button class="btn-touch btn-primary" style="width:100%;" onclick="confirmAddonSelection()">เพิ่มลงตะกร้า</button>
+      <button class="btn-touch" style="width:100%; background:#333; margin-top:8px;" onclick="closeAddonModal()">ยกเลิก</button>
+    </div>
+  </div>
+
+  <!-- Modal 2: ตั้งค่าร้านค้า -->
+  <div id="modal-settings" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width:600px; max-height:85vh; overflow-y:auto;">
+      <h2>⚙️ ตั้งค่าระบบร้านค้า</h2>
+      <div>
+        <label>URL โลโก้ร้าน:</label>
+        <input type="text" id="set-logo-url" style="width:100%; padding:8px; margin:8px 0;">
+        <label>ประเภทเครื่องพิมพ์:</label>
+        <select id="set-printer-type" style="width:100%; padding:8px; margin:8px 0;">
+          <option value="Bluetooth">Bluetooth (ESC/POS)</option>
+          <option value="USB">USB Printer</option>
+        </select>
+      </div>
+      <hr style="border-color:#444; margin:15px 0;">
+      <h3>จัดการหมวดหมู่ & เมนู</h3>
+      <p style="font-size:0.9rem; color:#aaa;">(ปรับแต่งหมวดหมู่ เมนู และราคา บันทึกลง Main DB Sheet)</p>
+      <button class="btn-touch btn-primary" style="width:100%; margin-top:15px;" onclick="saveSettingsUI()">บันทึกการตั้งค่าลง Sheet</button>
+      <button class="btn-touch" style="width:100%; background:#333; margin-top:8px;" onclick="closeSettingsModal()">ปิดหน้าต่าง</button>
+    </div>
+  </div>
+
+  <!-- Modal 3: Checkout -->
   <div id="modal-checkout" class="modal-overlay" style="display:none;">
     <div class="modal-content">
       <h2>สิทธิ์แก้วฟรี & การชำระเงิน</h2>
-      
-      <!-- ขั้นที่ 1: สิทธิ์แก้วฟรี -->
       <div>
         <p>1. สิทธิ์แก้วฟรี</p>
         <button class="btn-touch btn-warning" onclick="selectFreeCupOption('use')">แถมแก้วฟรี</button>
         <button class="btn-touch" style="background:#555;" onclick="selectFreeCupOption('none')">ไม่มี</button>
       </div>
 
-      <!-- ขั้นที่ 2: วิธีชำระเงิน (กดได้เมื่อเลือกสิทธิ์แล้ว) -->
       <div id="payment-section" style="opacity: 0.4; pointer-events: none; margin-top: 20px;">
         <p>2. วิธีชำระเงิน</p>
         <button class="btn-touch btn-primary" onclick="selectPaymentMethod('CASH')">เงินสด</button>
@@ -65,7 +145,7 @@
     </div>
   </div>
 
-  <!-- Modal Numpad กรอกเบอร์โทร -->
+  <!-- Modal 4: Numpad กรอกเบอร์ -->
   <div id="modal-numpad" class="modal-overlay" style="display:none;">
     <div class="modal-content">
       <h3>กรอกเบอร์โทรสมาชิก</h3>
