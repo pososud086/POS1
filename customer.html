@@ -1,72 +1,120 @@
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Display</title>
+    <title>Customer Facing Display</title>
     <style>
-        body { margin: 0; padding: 0; font-family: sans-serif; background-color: #121212; color: #fff; display: flex; height: 100vh; overflow: hidden; }
-        .left-panel { width: 50%; padding: 20px; background: #1E1E1E; border-right: 4px solid #D32F2F; overflow-y: auto; }
-        .right-panel { width: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #121212; }
-        h1 { color: #F57C00; font-size: 3em; margin-bottom: 10px; }
-        .cart-item { display: flex; justify-content: space-between; font-size: 1.8em; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        .total-price { font-size: 5em; color: #D32F2F; font-weight: bold; margin-top: 20px; }
-        #qr-container { background: #fff; padding: 20px; border-radius: 10px; display: none; margin-top: 20px; }
-        .qr-placeholder { width: 300px; height: 300px; background: #eee; display: flex; align-items: center; justify-content: center; color: #000; font-size: 20px; }
+        :root { --bg: #0a0a0a; --surface: #1a1a1a; --primary: #E63946; --secondary: #F4A261; --text: #ffffff; }
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+        
+        .left-panel { flex: 4; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 40px; background: var(--surface); border-right: 2px solid #333; }
+        .logo { max-width: 80%; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .qr-container { display: none; text-align: center; animation: fadeIn 0.5s ease-in-out; }
+        .qr-container img { max-width: 250px; background: white; padding: 10px; border-radius: 10px; }
+        .qr-container h2 { color: var(--secondary); margin-top: 15px; }
+
+        .right-panel { flex: 6; display: flex; flex-direction: column; padding: 40px; }
+        .cart-header { font-size: 2.5em; margin-bottom: 20px; border-bottom: 3px solid #333; padding-bottom: 10px; }
+        
+        .cart-list { flex: 1; overflow-y: auto; }
+        .cart-item { display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid #333; font-size: 1.5em; animation: slideIn 0.3s ease-out; }
+        .cart-addon { font-size: 0.6em; color: #aaa; margin-top: 5px; }
+        
+        .summary-box { background: var(--surface); padding: 30px; border-radius: 15px; margin-top: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .summary-line { display: flex; justify-content: space-between; font-size: 1.8em; margin-bottom: 15px; color: #ccc; }
+        .total-line { display: flex; justify-content: space-between; font-size: 3.5em; font-weight: bold; color: var(--secondary); border-top: 2px dashed #444; padding-top: 20px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
     </style>
 </head>
 <body>
+
     <div class="left-panel">
-        <h1>รายการสั่งซื้อ</h1>
-        <div id="c-cart"></div>
-    </div>
-    <div class="right-panel">
-        <h1 style="color:#fff;">ยอดรวมทั้งสิ้น</h1>
-        <div class="total-price" id="c-total">0 บาท</div>
-        <div id="qr-container">
-            <div id="qrcode" class="qr-placeholder">📱 สแกนเพื่อจ่ายเงิน</div>
+        <img src="https://img2.pic.in.th/pic/4fde4078-4c1c-4685-b6ba-8278601c1508.png" class="logo" alt="Logo">
+        <div class="qr-container" id="qr-container">
+            <img id="qr-image" src="" alt="QR Code">
+            <h2>สแกนเพื่อชำระเงิน</h2>
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script>
-        window.addEventListener('storage', (e) => {
-            if(e.key === 'cfd_state') {
-                const state = JSON.parse(e.newValue);
-                renderCart(state.cart, state.total);
-                if(state.payment === 'QR-CODE') {
-                    document.getElementById('qr-container').style.display = 'block';
-                    document.getElementById('qrcode').innerHTML = "";
-                    new QRCode(document.getElementById('qrcode'), {
-                        text: "PROMPTPAY-OR-PAYMENT-DATA-HERE",
-                        width: 300, height: 300
-                    });
-                } else {
-                    document.getElementById('qr-container').style.display = 'none';
-                }
-            }
-        });
+    <div class="right-panel">
+        <div class="cart-header">รายการสินค้า (My Order)</div>
+        <div class="cart-list" id="cart-list"></div>
+        <div class="summary-box">
+            <div class="summary-line"><span>ส่วนลด (Discount)</span><span id="discount-val">0฿</span></div>
+            <div class="total-line"><span>รวม (Total)</span><span id="total-val">0฿</span></div>
+        </div>
+    </div>
 
-        function renderCart(cart, total) {
-            let html = '';
-            cart.forEach(c => {
-                let p = c.isFree ? "ฟรี" : c.price * c.qty + "฿";
-                html += `<div class="cart-item">
-                            <span>${c.qty}x ${c.name}</span>
-                            <span style="${c.isFree ? 'color:#4CAF50' : ''}">${p}</span>
-                         </div>`;
+    <script>
+        // เบอร์พร้อมเพย์ของคุณ
+        const PROMPTPAY_PHONE = '0855934066';
+
+        function updateUI() {
+            const stateStr = localStorage.getItem('pos_state');
+            if (!stateStr) return;
+            const state = JSON.parse(stateStr);
+            
+            // Render Cart
+            const list = document.getElementById('cart-list');
+            list.innerHTML = '';
+            
+            // Group เหมือนตอนปริ้น
+            let printCart = {};
+            state.cart.forEach(item => {
+                let itemTotal = item.price;
+                let addonText = '';
+                item.selectedAddons.forEach(a => {
+                    itemTotal += a.price;
+                    addonText += `+ ${a.name} `;
+                });
+                
+                let key = item.name + addonText + (item.isFree ? 'FREE' : '');
+                if(!printCart[key]) {
+                    printCart[key] = { 
+                        name: item.name + (item.isFree ? ' <span style="color:var(--primary)">(ฟรี)</span>' : ''), 
+                        qty: 0, 
+                        price: item.isFree ? 0 : itemTotal,
+                        addon: addonText
+                    };
+                }
+                printCart[key].qty++;
             });
-            document.getElementById('c-cart').innerHTML = html;
-            document.getElementById('c-total').innerText = total + " บาท";
+
+            for(let key in printCart) {
+                list.innerHTML += `
+                    <div class="cart-item">
+                        <div>
+                            ${printCart[key].qty}x ${printCart[key].name}
+                            <div class="cart-addon">${printCart[key].addon}</div>
+                        </div>
+                        <div>${printCart[key].price * printCart[key].qty}฿</div>
+                    </div>
+                `;
+            }
+
+            // Update Totals
+            document.getElementById('discount-val').innerText = state.discount + '฿';
+            document.getElementById('total-val').innerText = state.total + '฿';
+
+            // Show/Hide QR
+            const qrContainer = document.getElementById('qr-container');
+            if (state.showQR && state.total > 0) {
+                // ใช้ API สร้าง QR PromptPay
+                document.getElementById('qr-image').src = `https://promptpay.io/${PROMPTPAY_PHONE}/${state.total}.png`;
+                qrContainer.style.display = 'block';
+            } else {
+                qrContainer.style.display = 'none';
+            }
         }
+
+        // ฟังการเปลี่ยนแปลงของ localStorage จากหน้าจอหลัก
+        window.addEventListener('storage', updateUI);
         
-        // Initial load
-        const init = localStorage.getItem('cfd_state');
-        if(init) {
-            const state = JSON.parse(init);
-            renderCart(state.cart, state.total);
-        }
+        // อัปเดตครั้งแรกตอนเปิดหน้า
+        updateUI();
     </script>
 </body>
 </html>
