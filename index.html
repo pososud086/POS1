@@ -1,6 +1,3 @@
-
-
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -23,7 +20,6 @@
         
         /* Categories & Menus */
         .menu-list-container { overflow-y: auto; flex-grow: 1; padding-right: 10px; }
-        /* Scrollbar styling */
         .menu-list-container::-webkit-scrollbar { width: 8px; }
         .menu-list-container::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
         .menu-list-container::-webkit-scrollbar-track { background: var(--bg); }
@@ -40,7 +36,6 @@
         /* Cart */
         .right-panel h2 { font-size: 1.6em; font-weight: bold; margin-top: 0;}
         .cart-list { flex: 1; overflow-y: auto; margin-bottom: 20px; padding-right: 5px;}
-        /* Scrollbar for cart */
         .cart-list::-webkit-scrollbar { width: 6px; }
         .cart-list::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
 
@@ -64,40 +59,53 @@
         .addon-group { margin-bottom: 20px; }
         .addon-group h3 { font-size: 1.3em; color: var(--secondary); margin-bottom: 10px;}
         .addon-option { display: flex; justify-content: space-between; padding: 12px; background: #2a2a2a; margin-bottom: 8px; border-radius: 8px; font-size: 1.1em; font-weight: bold; cursor: pointer;}
-        
-        /* Checkbox styling */
         .addon-option label { cursor: pointer; display: flex; align-items: center; width: 100%;}
         .addon-option input[type="checkbox"] { transform: scale(1.3); margin-right: 12px; cursor: pointer;}
 
-        /* Printing styles */
-        @media print {
-            body > *:not(#print-area) { display: none; }
-            body { background: white; color: black; display: block; }
-            #print-area { display: block !important; position: absolute; left: 0; top: 0; width: 58mm; margin: 0; padding: 0; font-family: 'Courier New', Courier, monospace; font-size: 12px; }
-            .receipt { width: 58mm; }
-            .receipt-logo { width: 80%; display: block; margin: 0 auto 10px auto; }
-            .receipt-text-center { text-align: center; }
-            .receipt-divider { border-bottom: 1px dashed black; margin: 5px 0; }
-            .receipt-table { width: 100%; text-align: left; margin-bottom: 10px; }
-            .receipt-table th, .receipt-table td { padding: 2px 0; }
-            .receipt-table .right { text-align: right; }
-        }
+        /* ==========================================
+           ระบบปริ้นใบเสร็จ (Print CSS) 
+           ซ่อนหน้าจอหลักทั้งหมดและแสดงเฉพาะใบเสร็จ
+           ========================================== */
         #print-area { display: none; }
+        
+        @media print {
+            /* 1. ซ่อน UI หน้าจอพนักงานทั้งหมด */
+            .left-panel, .right-panel, .modal { display: none !important; }
+            
+            /* 2. เปลี่ยนพื้นหลังและสีตัวอักษรของ Body ให้เหมาะกับการปริ้น */
+            body { background: white !important; color: black !important; display: block; margin: 0; padding: 0; }
+            
+            /* 3. แสดงและตั้งค่าส่วนของใบเสร็จ */
+            #print-area { 
+                display: block !important; 
+                width: 58mm; 
+                margin: 0; 
+                padding: 0; 
+                font-family: 'Cordia New', 'Sarabun', 'Segoe UI', sans-serif; /* ฟอนต์ที่อ่านง่ายบนเครื่องปริ้นสลิป */
+                font-size: 14px; 
+            }
+            .receipt { width: 100%; padding-right: 2mm;} /* เผื่อขอบด้านขวานิดหน่อย */
+            .receipt-logo { width: 70%; display: block; margin: 0 auto 5px auto; }
+            .receipt-text-center { text-align: center; }
+            .receipt-divider { border-bottom: 1px dashed black; margin: 8px 0; width: 100%; }
+            .receipt-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+            .receipt-table th, .receipt-table td { padding: 3px 0; vertical-align: top; }
+            .receipt-table .right { text-align: right; }
+            
+            /* จัดรูปแบบ Addon ในใบเสร็จ */
+            .print-addon { font-size: 12px; color: #333; padding-left: 10px; display: block;}
+        }
     </style>
 </head>
 <body>
 
-    <!-- Main UI -->
+    <!-- Main UI (พนักงาน) -->
     <div class="left-panel">
         <div class="header">
             <h2>POS System</h2>
-            <!-- ปรับปุ่มให้ทำหน้าที่ทดสอบการปริ้น/แสดง Dialog -->
             <button class="btn-print-setup" onclick="setupPrinter()">🖨️ เครื่องปริ้น</button>
         </div>
-        <!-- เปลี่ยนมาใช้ Container ที่เลื่อนลงได้ -->
-        <div class="menu-list-container" id="menu-list-container">
-            กำลังโหลดข้อมูล...
-        </div>
+        <div class="menu-list-container" id="menu-list-container">กำลังโหลดข้อมูล...</div>
     </div>
 
     <div class="right-panel">
@@ -110,7 +118,7 @@
         </div>
     </div>
 
-    <!-- Addon Modal -->
+    <!-- Modals (Addon, Free Cup, Payment) -->
     <div class="modal" id="addon-modal">
         <div class="modal-content">
             <h2 id="addon-modal-title">เลือก แอดออน</h2>
@@ -122,7 +130,6 @@
         </div>
     </div>
 
-    <!-- Free Cup Modal -->
     <div class="modal" id="free-modal">
         <div class="modal-content">
             <h2>เลือกแก้วฟรี (ส่วนลด)</h2>
@@ -134,7 +141,6 @@
         </div>
     </div>
 
-    <!-- Payment Modal -->
     <div class="modal" id="payment-modal">
         <div class="modal-content" style="text-align: center;">
             <h2 style="font-size: 1.8em;">ชำระเงิน <span id="pay-amount" style="color: var(--secondary);"></span></h2>
@@ -148,7 +154,7 @@
         </div>
     </div>
 
-    <!-- Print Area -->
+    <!-- Print Area (แสดงเฉพาะตอนสั่งปริ้น) -->
     <div id="print-area">
         <div id="receipt-content" class="receipt"></div>
     </div>
@@ -162,14 +168,8 @@
         let tempItem = null;
         let currentOrderId = 1;
 
-        // โหลดข้อมูลตอนเปิดหน้า
         window.onload = async () => {
             try {
-                // เช็คว่าเคยผ่านการตั้งค่า Print หรือยัง (เชิงสัญลักษณ์)
-                if(!localStorage.getItem('printer_setup_done')) {
-                     console.log("Printer not explicitly setup in this session yet.");
-                }
-
                 const res = await fetch(`${API_URL}?action=getInitData`);
                 appData = await res.json();
                 currentOrderId = appData.lastOrderId + 1;
@@ -180,58 +180,32 @@
             }
         };
 
-        // ฟังก์ชันสำหรับปุ่มตั้งค่าเครื่องปริ้น
         function setupPrinter() {
-            // Browser สมัยใหม่ ไม่อนุญาตให้ Javascript อ่านรายชื่อ Hardware Printer ตรงๆ
-            // วิธีที่ปฏิบัติได้จริงบน Web POS คือการเรียก window.print() หน้าเปล่าๆ เพื่อให้ User เลือก Default Printer ไว้
             document.getElementById('receipt-content').innerHTML = `
                 <div style="text-align:center;">
-                    <b>TEST PRINT</b><br>
-                    กรุณาเลือกเครื่องพิมพ์สลิป 58mm<br>
-                    และตั้งค่าเป็นค่าเริ่มต้น
+                    <b>TEST PRINT</b><br>กรุณาตั้งค่า 58mm<br>ไม่มีขอบ ไม่มีหัวกระดาษ
                 </div>
             `;
-            
-            // ใช้ setTimeout เพื่อให้ DOM วาดเนื้อหาเสร็จก่อนเรียก print
-            setTimeout(() => {
-                window.print();
-                localStorage.setItem('printer_setup_done', 'true');
-                alert("ระบบจดจำการตั้งค่าการพิมพ์ของเบราว์เซอร์แล้ว\nครั้งต่อไปจะพิมพ์ออกเครื่องที่เลือกไว้ล่าสุด");
-            }, 500);
+            setTimeout(() => { window.print(); }, 500);
         }
 
-        // แสดงผลเมนูทั้งหมด แบบเรียงลงมาตามหมวดหมู่
         function renderAllMenus() {
             const container = document.getElementById('menu-list-container');
             container.innerHTML = '';
-            
-            // หาหมวดหมู่ทั้งหมดที่มีแบบไม่ซ้ำ
             const cats = [...new Set(appData.menus.map(m => m.category))];
 
             cats.forEach(cat => {
-                // สร้าง Section สำหรับหมวดหมู่นี้
                 const section = document.createElement('div');
                 section.className = 'category-section';
-                
-                // หัวข้อหมวดหมู่
-                const title = document.createElement('div');
-                title.className = 'category-title';
-                title.innerText = cat;
-                section.appendChild(title);
-
-                // Grid สำหรับใส่เมนู
+                section.innerHTML = `<div class="category-title">${cat}</div>`;
                 const grid = document.createElement('div');
                 grid.className = 'menu-grid';
 
-                // คัดกรองเมนูเฉพาะหมวดนี้
                 const items = appData.menus.filter(m => m.category === cat);
                 items.forEach(item => {
                     const div = document.createElement('div');
                     div.className = 'menu-item';
-                    div.innerHTML = `
-                        <div class="menu-name">${item.name}</div>
-                        <div class="menu-price">${item.price}฿</div>
-                    `;
+                    div.innerHTML = `<div class="menu-name">${item.name}</div><div class="menu-price">${item.price}฿</div>`;
                     div.onclick = () => selectItem(item);
                     grid.appendChild(div);
                 });
@@ -264,15 +238,10 @@
                     addon.options.forEach(opt => {
                         const optDiv = document.createElement('div');
                         optDiv.className = 'addon-option';
-                        // ใช้ label ครอบ input เพื่อให้กดที่ชื่อหรือกรอบก็ติด
                         optDiv.innerHTML = `
-                            <label>
-                                <input type="checkbox" value='${JSON.stringify(opt)}' class="addon-chk"> 
-                                <span>${opt.name}</span>
-                            </label>
+                            <label><input type="checkbox" value='${JSON.stringify(opt)}' class="addon-chk"> <span>${opt.name}</span></label>
                             <span>+${opt.price}฿</span>
                         `;
-                        // ทำให้คลิกที่ตัว div แล้วส่งผลถึง checkbox ข้างในได้
                         optDiv.onclick = function(e) {
                             if(e.target.tagName !== 'INPUT') {
                                 const chk = this.querySelector('input');
@@ -289,9 +258,7 @@
 
         function confirmAddon() {
             const checkboxes = document.querySelectorAll('.addon-chk:checked');
-            checkboxes.forEach(chk => {
-                tempItem.selectedAddons.push(JSON.parse(chk.value));
-            });
+            checkboxes.forEach(chk => { tempItem.selectedAddons.push(JSON.parse(chk.value)); });
             tempItem.cartId = Date.now();
             addToCart(tempItem);
             closeModal('addon-modal');
@@ -317,11 +284,7 @@
                     addonText += `+ ${a.name} `;
                 });
 
-                if(item.isFree) {
-                    discount += itemTotal;
-                } else {
-                    total += itemTotal;
-                }
+                if(item.isFree) discount += itemTotal; else total += itemTotal;
 
                 list.innerHTML += `
                     <div class="cart-item">
@@ -360,9 +323,7 @@
         }
 
         function confirmFree() {
-            cart.forEach((item, i) => {
-                item.isFree = document.getElementById(`free-chk-${i}`).checked;
-            });
+            cart.forEach((item, i) => { item.isFree = document.getElementById(`free-chk-${i}`).checked; });
             renderCart();
             closeModal('free-modal');
             openPaymentModal();
@@ -376,12 +337,10 @@
         }
 
         function openPaymentModal() {
-            const total = document.getElementById('total-display').innerText;
-            document.getElementById('pay-amount').innerText = total;
+            document.getElementById('pay-amount').innerText = document.getElementById('total-display').innerText;
             document.getElementById('print-controls').style.display = 'none';
             document.getElementById('payment-modal').style.display = 'flex';
             
-            // ปิด QR Code ที่จอลูกค้าถ้าเปิดไว้
             let state = JSON.parse(localStorage.getItem('pos_state')) || { cart:[], total:0, discount:0 };
             state.showQR = false;
             localStorage.setItem('pos_state', JSON.stringify(state));
@@ -397,31 +356,52 @@
                 state.showQR = true;
                 localStorage.setItem('pos_state', JSON.stringify(state));
             } else {
-                // เงินสด สั่งปริ้นลูกค้าอัตโนมัติ
                 printReceipt('customer');
             }
         }
 
+        // สร้างเนื้อหาใบเสร็จให้ตรงรูปแบบที่ต้องการ
         function generateReceiptHTML(type) {
             let total = 0, discount = 0;
             let itemsHTML = '';
             
-            // นับจำนวน (Grouping สำหรับปริ้น)
+            // Grouping สินค้าที่เหมือนกัน
             let printCart = {};
             cart.forEach(item => {
                 let itemTotal = item.price;
-                item.selectedAddons.forEach(a => itemTotal += a.price);
+                // สร้าง HTML ของ Addon เพื่อพิมพ์ขึ้นบรรทัดใหม่
+                let printAddonText = ''; 
+                // สร้างข้อความ Addon ไว้เทียบว่าเหมือนกันไหม
+                let compareAddonKey = '';
+                
+                item.selectedAddons.forEach(a => {
+                    itemTotal += a.price;
+                    printAddonText += `<span class="print-addon">+ ${a.name}</span>`;
+                    compareAddonKey += a.name;
+                });
+
                 if(item.isFree) discount += itemTotal; else total += itemTotal;
                 
-                let key = item.name + (item.isFree ? 'FREE' : '');
-                if(!printCart[key]) printCart[key] = { name: item.name + (item.isFree ? '(ฟรี)' : ''), qty: 0, price: item.isFree ? 0 : itemTotal };
+                let key = item.name + compareAddonKey + (item.isFree ? 'FREE' : '');
+                
+                if(!printCart[key]) {
+                    printCart[key] = { 
+                        name: item.name + (item.isFree ? ' (ฟรี)' : ''), 
+                        qty: 0, 
+                        price: item.isFree ? 0 : itemTotal,
+                        addonHTML: printAddonText
+                    };
+                }
                 printCart[key].qty++;
             });
 
             for(let key in printCart) {
                 itemsHTML += `
                     <tr>
-                        <td>x${printCart[key].qty} ${printCart[key].name}</td>
+                        <td>
+                            x${printCart[key].qty} ${printCart[key].name}
+                            ${printCart[key].addonHTML}
+                        </td>
                         <td class="right">${printCart[key].price * printCart[key].qty}฿</td>
                     </tr>
                 `;
@@ -430,9 +410,9 @@
             if(type === 'customer') {
                 return `
                     <img src="https://img2.pic.in.th/pic/4fde4078-4c1c-4685-b6ba-8278601c1508.png" class="receipt-logo">
-                    <div class="receipt-text-center">เติมมัทฉะ</div>
+                    <div class="receipt-text-center"><b>เติมมัทฉะ</b></div>
                     <div class="receipt-divider"></div>
-                    <div>ออเดอร์ #${currentOrderId}</div>
+                    <div><b>ออเดอร์ #${currentOrderId}</b></div>
                     <table class="receipt-table">
                         <tr><th>รายการ</th><th class="right">ราคา</th></tr>
                         ${itemsHTML}
@@ -448,7 +428,7 @@
                 `;
             } else {
                 return `
-                    <div>ออเดอร์ที่ #${currentOrderId} (${currentPaymentMethod})</div>
+                    <div><b>ออเดอร์ที่ #${currentOrderId}</b> (${currentPaymentMethod})</div>
                     <div class="receipt-divider"></div>
                     <table class="receipt-table">
                         <tr><th>รายการ</th><th class="right">ราคา</th></tr>
@@ -464,7 +444,10 @@
         }
 
         function printReceipt(type) {
+            // ยัดเนื้อหาใบเสร็จลงใน div #print-area
             document.getElementById('receipt-content').innerHTML = generateReceiptHTML(type);
+            
+            // สั่งปริ้น (CSS @media print จะทำงานตอนบรรทัดนี้)
             window.print();
 
             if (type === 'shop') {
@@ -488,31 +471,24 @@
             };
 
             try {
-                // เปลี่ยนข้อความปุ่มเพื่อบอกผู้ใช้ว่ากำลังบันทึก
                 const btnShopPrint = document.querySelector('#print-controls .btn-main');
                 const origText = btnShopPrint.innerText;
                 btnShopPrint.innerText = "กำลังบันทึก...";
                 btnShopPrint.disabled = true;
 
-                // บันทึกลง Google Sheet
                 await fetch(API_URL, {
                     method: 'POST',
                     body: JSON.stringify(payload),
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' }
                 });
                 
-                // จบออเดอร์ รีเซ็ตระบบ
                 currentOrderId++;
                 cart = [];
                 renderCart();
                 closeModal('payment-modal');
                 
-                // คืนค่าปุ่ม
                 btnShopPrint.innerText = origText;
                 btnShopPrint.disabled = false;
-                
-                // แจ้งเตือน หรือจะปล่อยผ่านไปเลยเพื่อความรวดเร็วก็ได้
-                // alert('บันทึกออเดอร์สำเร็จเรียบร้อย');
             } catch (err) {
                 alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
                 document.querySelector('#print-controls .btn-main').disabled = false;
