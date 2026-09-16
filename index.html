@@ -75,37 +75,64 @@
         .addon-option label { cursor: pointer; display: flex; align-items: center; width: 100%;}
         .addon-option input[type="checkbox"] { transform: scale(1.3); margin-right: 12px; cursor: pointer;}
 
-        #loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 999; flex-direction: column; justify-content: center; align-items: center; font-size: 24px; font-weight: bold; color: var(--secondary); }
+        /* Background Task Notification (มุมขวาบน) */
+        .bg-task-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(40, 167, 69, 0.9);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            display: none;
+            z-index: 9999;
+            align-items: center;
+            gap: 15px;
+            animation: slideInRight 0.3s ease-out;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 4px solid white;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOutRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
     </style>
 </head>
 <body>
 
-    <!-- Loading Overlay -->
-    <div id="loading-overlay">กำลังประมวลผลและสั่งปริ้น... 🍵</div>
+    <!-- การแจ้งเตือนมุมขวาบน (ทำงานอยู่เบื้องหลัง) -->
+    <div id="bg-task" class="bg-task-notification">
+        <div class="spinner" id="bg-task-spinner"></div>
+        <span id="bg-task-text">กำลังบันทึกข้อมูล...</span>
+    </div>
 
     <!-- Main UI (พนักงาน) -->
     <div class="left-panel">
         <div class="header">
             <h2>POS System</h2>
-            <!-- ปุ่มเชื่อมต่อ Bluetooth (ใช้ร่วมกันทั้ง POS และ ระบบแต้ม) -->
             <button class="btn-print-setup" id="btn-bt-connect" onclick="connectBluetooth()">🔵 เชื่อมต่อเครื่องปริ้น</button>
         </div>
         
-        <!-- พื้นที่รายการเมนู -->
         <div class="menu-list-container" id="menu-list-container">กำลังโหลดข้อมูล...</div>
 
-        <!-- ระบบปริ้นแต้ม (ตรึงด้านล่าง) -->
         <div class="point-system-container">
             <div class="point-system-title">
                 <span>ปริ้นโค้ดสะสมแต้ม</span>
             </div>
-            <div class="point-grid" id="point-button-grid">
-                <!-- ปุ่ม 1-10 แก้ว จะถูกสร้างด้วย Javascript -->
-            </div>
+            <div class="point-grid" id="point-button-grid"></div>
         </div>
     </div>
 
-    <!-- ฝั่งขวา (ตระกร้าสินค้า) -->
     <div class="right-panel">
         <h2>รายการที่เลือก</h2>
         <div class="cart-list" id="cart-list"></div>
@@ -116,7 +143,7 @@
         </div>
     </div>
 
-    <!-- Modals (Addon, Free Cup, Payment) -->
+    <!-- Modals -->
     <div class="modal" id="addon-modal">
         <div class="modal-content">
             <h2 id="addon-modal-title">เลือก แอดออน</h2>
@@ -148,35 +175,32 @@
             <div id="print-controls" style="display: none; margin-top: 20px; border-top: 1px solid #444; padding-top: 20px;">
                 <button class="btn-secondary" onclick="printReceiptBluetooth('customer')" style="margin-bottom:15px;">🖨️ ปริ้นใบเสร็จลูกค้า</button>
                 <button class="btn-main" onclick="printReceiptBluetooth('shop')" style="margin-bottom:15px;">🖨️ ปริ้นใบเสร็จร้านค้า & จบออเดอร์</button>
-                <!-- ปุ่มจบออเดอร์ (ไม่ปริ้น) -->
                 <button class="btn-gray" onclick="saveOrderAndFinish()">✅ จบออเดอร์ (บันทึกอย่างเดียว)</button>
             </div>
         </div>
     </div>
 
-    <!-- Canvas กลางสำหรับใช้วาดรูประบบปริ้นทั้งหมด -->
     <canvas id="receiptCanvas" width="384" style="display:none;"></canvas>
 
     <script>
         // ==========================================
-        // URL สำหรับ API ต่างๆ (แก้ไขตรงนี้)
+        // URL สำหรับ API ต่างๆ
         // ==========================================
-        const POS_API_URL = 'https://script.google.com/macros/s/AKfycbyTsblHupSi2rU2Ue4kXRRpaH-_EfncjOM2bLt41B3fKOnJOCjnyeinaGoSMo5h9VSsXQ/exec'; // API ของ POS (เมนู/บันทึกยอดขาย)
-        const POINTS_API_URL = 'https://script.google.com/macros/s/AKfycby1OXK2Gd7WN4ovExuPs5ymEvRA32AjZMt1jM9ACWnacpot3BLPvFzqU6lii1dCTVlPcw/exec'; // API ของระบบสะสมแต้ม
+        const POS_API_URL = 'https://script.google.com/macros/s/AKfycbyTsblHupSi2rU2Ue4kXRRpaH-_EfncjOM2bLt41B3fKOnJOCjnyeinaGoSMo5h9VSsXQ/exec';
+        const POINTS_API_URL = 'https://script.google.com/macros/s/AKfycby1OXK2Gd7WN4ovExuPs5ymEvRA32AjZMt1jM9ACWnacpot3BLPvFzqU6lii1dCTVlPcw/exec';
 
         let appData = { menus: [], addons: {}, lastOrderId: 0 };
         let cart = [];
         let tempItem = null;
         let currentOrderId = 1;
         let currentPaymentMethod = '';
-
-        // ตัวแปร Bluetooth (แชร์ร่วมกัน)
         let printCharacteristic = null;
 
-        window.onload = async () => {
-            // สร้างปุ่มสะสมแต้ม
-            generatePointButtons();
+        // ระบบคิวงานเบื้องหลัง
+        let activeTasks = 0;
 
+        window.onload = async () => {
+            generatePointButtons();
             try {
                 const res = await fetch(`${POS_API_URL}?action=getInitData`);
                 appData = await res.json();
@@ -189,7 +213,43 @@
         };
 
         // ==========================================
-        // ระบบ BLUETOOTH PRINTER (แชร์ร่วมกัน)
+        // ระบบแจ้งเตือนเบื้องหลัง (Background Task UI)
+        // ==========================================
+        function showBackgroundTask(text) {
+            activeTasks++;
+            const notif = document.getElementById('bg-task');
+            document.getElementById('bg-task-text').innerText = text;
+            document.getElementById('bg-task-spinner').style.display = 'block';
+            notif.style.background = 'rgba(40, 167, 69, 0.9)'; // สีเขียวปกติ
+            notif.style.display = 'flex';
+        }
+
+        function hideBackgroundTask(successMsg = null, isError = false) {
+            activeTasks--;
+            if (activeTasks < 0) activeTasks = 0;
+            
+            const notif = document.getElementById('bg-task');
+            if (successMsg) {
+                document.getElementById('bg-task-text').innerText = successMsg;
+                document.getElementById('bg-task-spinner').style.display = 'none';
+                if(isError) {
+                    notif.style.background = 'rgba(220, 53, 69, 0.9)'; // แดง
+                }
+            }
+
+            if (activeTasks === 0) {
+                setTimeout(() => {
+                    notif.style.animation = 'slideOutRight 0.3s ease-out forwards';
+                    setTimeout(() => { 
+                        notif.style.display = 'none'; 
+                        notif.style.animation = 'slideInRight 0.3s ease-out';
+                    }, 300);
+                }, successMsg ? 2000 : 0); // ค้างไว้ 2 วิถ้ามีข้อความสำเร็จ
+            }
+        }
+
+        // ==========================================
+        // ระบบ BLUETOOTH
         // ==========================================
         async function connectBluetooth() {
             try {
@@ -280,22 +340,16 @@
             }
 
             if (type === 'customer') {
-                try {
-                    const logo = await loadImage('https://img2.pic.in.th/pic/4fde4078-4c1c-4685-b6ba-8278601c1508.png');
-                    const imgWidth = 200;
-                    const imgHeight = (logo.height / logo.width) * imgWidth;
-                    ctx.drawImage(logo, 92, y, imgWidth, imgHeight);
-                    y += imgHeight + 35;
-                } catch (e) {
-                    drawText('เติมมัทฉะ', 192, 'center', 'bold 32px sans-serif');
+        
+                    drawText('เติมมัทฉะ', 192, 'center', 'bold 35px sans-serif');
                     y += 45;
-                }
+                
                 drawText('--------------------------------', 192, 'center', 'bold 24px sans-serif');
                 y += 35;
-                drawText(`ออเดอร์ #${currentOrderId}`, 10, 'left', 'bold 26px sans-serif');
+                drawText(`ออเดอร์ #${currentOrderId}`, 10, 'left', 'bold 32px sans-serif');
                 y += 40;
             } else {
-                drawText(`ออเดอร์ที่ #${currentOrderId}`, 10, 'left', 'bold 30px sans-serif');
+                drawText(`ออเดอร์ที่ #${currentOrderId}`, 10, 'left', 'bold 32px sans-serif');
                 y += 40;
                 drawText('--------------------------------', 192, 'center', 'bold 24px sans-serif');
                 y += 35;
@@ -351,18 +405,21 @@
             } else { y += 40; }
 
             try {
+                if (type === 'shop') saveOrderAndFinish(); // สั่งบันทึกและปิดหน้าจอเคลียร์ข้อมูลทันที
+
+                showBackgroundTask("กำลังปริ้นใบเสร็จ...");
                 const escposData = convertCanvasToESCPOS(ctx, 384, y);
                 for (let i = 0; i < escposData.length; i += 100) {
                     await printCharacteristic.writeValue(escposData.slice(i, i + 100));
                 }
-                if (type === 'shop') saveOrderAndFinish();
+                hideBackgroundTask();
             } catch (e) {
-                alert("ปริ้นล้มเหลว: " + e.message);
+                hideBackgroundTask("ปริ้นล้มเหลว", true);
             }
         }
 
         // ==========================================
-        // 2. ระบบปริ้นโค้ดสะสมแต้ม (ตรึงล่างซ้าย)
+        // 2. ระบบปริ้นโค้ดสะสมแต้ม
         // ==========================================
         function generatePointButtons() {
             const grid = document.getElementById('point-button-grid');
@@ -381,19 +438,19 @@
                 return;
             }
             
-            document.getElementById('loading-overlay').style.display = 'flex';
+            showBackgroundTask(`กำลังสร้างแต้ม ${cups} แก้ว...`);
             
             fetch(`${POINTS_API_URL}?action=generate&cups=${cups}`)
                 .then(response => response.json())
                 .then(data => handlePointPrint(data))
                 .catch(error => {
-                    alert('เกิดข้อผิดพลาดในการเชื่อมต่อระบบแต้ม: ' + error);
-                    document.getElementById('loading-overlay').style.display = 'none';
+                    hideBackgroundTask("สร้างแต้มล้มเหลว", true);
                 });
         }
 
         async function handlePointPrint(data) {
             try {
+                showBackgroundTask("กำลังปริ้นโค้ดแต้ม...");
                 const canvas = document.getElementById('receiptCanvas');
                 canvas.height = 800; 
                 
@@ -441,11 +498,10 @@
                 for (let i = 0; i < escposData.length; i += 100) {
                     await printCharacteristic.writeValue(escposData.slice(i, i + 100));
                 }
+                hideBackgroundTask("ปริ้นสำเร็จ");
             } catch (e) {
-                alert("ปริ้นล้มเหลว: " + e.message);
-            } finally {
-                document.getElementById('loading-overlay').style.display = 'none';
-            }
+                hideBackgroundTask("ปริ้นล้มเหลว", true);
+            } 
         }
 
         // ==========================================
@@ -615,13 +671,11 @@
                 let state = JSON.parse(localStorage.getItem('pos_state'));
                 state.showQR = true;
                 localStorage.setItem('pos_state', JSON.stringify(state));
-            } else {
-                // ถ้าเป็นเงินสด ไม่สั่งปริ้นลูกค้าอัตโนมัติแล้ว ให้แสดงปุ่มกดเลือกเอง
             }
         }
 
-        // ฟังก์ชันจบออเดอร์ บันทึกลง Sheet และรีเซ็ตหน้าจอ (ไม่สั่งปริ้น)
-        async function saveOrderAndFinish() {
+        // ฟังก์ชันจบออเดอร์ ทำงานเบื้องหลัง ไม่หน่วงหน้าจอ
+        function saveOrderAndFinish() {
             let total = 0;
             cart.forEach(item => {
                 let itemTotal = item.price;
@@ -631,27 +685,28 @@
 
             const payload = { action: 'saveOrder', orderId: currentOrderId, total: total, paymentMethod: currentPaymentMethod };
 
-            try {
-                // ปิดปุ่มทั้งหมดระหว่างบันทึก
-                const btns = document.querySelectorAll('#print-controls button');
-                btns.forEach(b => b.disabled = true);
-                btns[2].innerText = "กำลังบันทึกข้อมูล...";
+            // 1. โชว์ Loading เบื้องหลัง
+            showBackgroundTask(`กำลังบันทึกออเดอร์ #${currentOrderId}...`);
 
-                await fetch(POS_API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
-                
-                // รีเซ็ตหน้าจอเพื่อรับออเดอร์ใหม่
-                currentOrderId++;
-                cart = [];
-                renderCart();
-                closeModal('payment-modal');
-                
-                // คืนค่าปุ่ม
-                btns.forEach(b => b.disabled = false);
-                btns[2].innerText = "✅ จบออเดอร์ (บันทึกอย่างเดียว)";
-            } catch (err) {
-                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
-                document.querySelectorAll('#print-controls button').forEach(b => b.disabled = false);
-            }
+            // 2. เคลียร์ข้อมูลและปิดหน้าต่างให้พนักงานรับคิวใหม่ทันที
+            const savedOrderId = currentOrderId; // จำเลขนี้ไว้แจ้งเตือน
+            currentOrderId++;
+            cart = [];
+            renderCart();
+            closeModal('payment-modal');
+
+            // 3. ส่งข้อมูลไป Google Sheet เบื้องหลังเงียบๆ
+            fetch(POS_API_URL, { 
+                method: 'POST', 
+                body: JSON.stringify(payload), 
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' } 
+            })
+            .then(res => {
+                hideBackgroundTask(`บันทึก #${savedOrderId} สำเร็จ ✅`);
+            })
+            .catch(err => {
+                hideBackgroundTask(`บันทึก #${savedOrderId} ล้มเหลว ❌`, true);
+            });
         }
 
         function updateCustomerDisplay(total = 0, discount = 0) {
