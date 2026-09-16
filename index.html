@@ -61,6 +61,8 @@
         .btn-main { background: var(--primary); color: white; border: none; padding: 18px; border-radius: 8px; font-size: 1.3em; font-weight: bold; cursor: pointer; width: 100%; transition: 0.3s; }
         .btn-main:hover { background: #d62828; }
         .btn-secondary { background: var(--secondary); color: #121212; border: none; padding: 18px; border-radius: 8px; font-size: 1.3em; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; }
+        .btn-gray { background: #555; color: white; border: none; padding: 18px; border-radius: 8px; font-size: 1.3em; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; transition: 0.3s; }
+        .btn-gray:hover { background: #777; }
         .btn-delete { background: #dc3545; color: white; border: none; border-radius: 6px; padding: 6px 12px; margin-top: 5px; cursor: pointer; font-weight: bold;}
 
         /* Modals */
@@ -145,7 +147,9 @@
             
             <div id="print-controls" style="display: none; margin-top: 20px; border-top: 1px solid #444; padding-top: 20px;">
                 <button class="btn-secondary" onclick="printReceiptBluetooth('customer')" style="margin-bottom:15px;">🖨️ ปริ้นใบเสร็จลูกค้า</button>
-                <button class="btn-main" onclick="printReceiptBluetooth('shop')">🖨️ ปริ้นใบเสร็จร้านค้า & จบออเดอร์</button>
+                <button class="btn-main" onclick="printReceiptBluetooth('shop')" style="margin-bottom:15px;">🖨️ ปริ้นใบเสร็จร้านค้า & จบออเดอร์</button>
+                <!-- ปุ่มจบออเดอร์ (ไม่ปริ้น) -->
+                <button class="btn-gray" onclick="saveOrderAndFinish()">✅ จบออเดอร์ (บันทึกอย่างเดียว)</button>
             </div>
         </div>
     </div>
@@ -157,7 +161,7 @@
         // ==========================================
         // URL สำหรับ API ต่างๆ (แก้ไขตรงนี้)
         // ==========================================
-        const POS_API_URL = 'https://script.google.com/macros/s/AKfycbyTsblHupSi2rU2Ue4kXRRpaH-_EfncjOM2bLt41B3fKOnJOCjnyeinaGoSMo5h9VSsXQ/exec'; // API ของ POS (เมนู/บันทึกยอดขาย)
+        const POS_API_URL = 'YOUR_GAS_WEB_APP_URL'; // API ของ POS (เมนู/บันทึกยอดขาย)
         const POINTS_API_URL = 'https://script.google.com/macros/s/AKfycby1OXK2Gd7WN4ovExuPs5ymEvRA32AjZMt1jM9ACWnacpot3BLPvFzqU6lii1dCTVlPcw/exec'; // API ของระบบสะสมแต้ม
 
         let appData = { menus: [], addons: {}, lastOrderId: 0 };
@@ -612,10 +616,11 @@
                 state.showQR = true;
                 localStorage.setItem('pos_state', JSON.stringify(state));
             } else {
-                printReceiptBluetooth('customer');
+                // ถ้าเป็นเงินสด ไม่สั่งปริ้นลูกค้าอัตโนมัติแล้ว ให้แสดงปุ่มกดเลือกเอง
             }
         }
 
+        // ฟังก์ชันจบออเดอร์ บันทึกลง Sheet และรีเซ็ตหน้าจอ (ไม่สั่งปริ้น)
         async function saveOrderAndFinish() {
             let total = 0;
             cart.forEach(item => {
@@ -627,19 +632,22 @@
             const payload = { action: 'saveOrder', orderId: currentOrderId, total: total, paymentMethod: currentPaymentMethod };
 
             try {
+                // ปิดปุ่มทั้งหมดระหว่างบันทึก
                 const btns = document.querySelectorAll('#print-controls button');
                 btns.forEach(b => b.disabled = true);
-                btns[1].innerText = "กำลังบันทึก...";
+                btns[2].innerText = "กำลังบันทึกข้อมูล...";
 
                 await fetch(POS_API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
                 
+                // รีเซ็ตหน้าจอเพื่อรับออเดอร์ใหม่
                 currentOrderId++;
                 cart = [];
                 renderCart();
                 closeModal('payment-modal');
                 
+                // คืนค่าปุ่ม
                 btns.forEach(b => b.disabled = false);
-                btns[1].innerText = "🖨️ ปริ้นใบเสร็จร้านค้า & จบออเดอร์";
+                btns[2].innerText = "✅ จบออเดอร์ (บันทึกอย่างเดียว)";
             } catch (err) {
                 alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
                 document.querySelectorAll('#print-controls button').forEach(b => b.disabled = false);
