@@ -348,11 +348,32 @@
                 y += 35;
                 drawText(`ออเดอร์ #${currentOrderId}`, 10, 'left', 'bold 32px sans-serif');
                 y += 40;
+                    const now = new Date();
+    const day = now.getDate();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear() + 543;
+    const hour = String(now.getHours()).padStart(2, '0');
+    const minute = String(now.getMinutes()).padStart(2, '0');
+
+    drawText(
+        `วันที่ ${day}/${month}/${year} เวลา ${hour}:${minute} น.`,
+        192,
+        'center',
+        '24px sans-serif'
+    );
+    y += 35;
             } else {
                 drawText(`ออเดอร์ที่ #${currentOrderId}`, 10, 'left', 'bold 32px sans-serif');
                 y += 40;
                 drawText('--------------------------------', 192, 'center', 'bold 24px sans-serif');
                 y += 35;
+                    drawText(
+        `วันที่ ${day}/${month}/${year} เวลา ${hour}:${minute} น.`,
+        192,
+        'center',
+        '24px sans-serif'
+    );
+    y += 35;
             }
 
             drawText('รายการ', 10, 'left', 'bold 24px sans-serif');
