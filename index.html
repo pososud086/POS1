@@ -5,24 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>POS System - พนักงาน</title>
     <style>
+        /* สไตล์ CSS เหมือนเดิม */
         :root { --bg: #121212; --surface: #1e1e1e; --primary: #E63946; --secondary: #F4A261; --text: #f1faee; }
         body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
         
-        /* Layout */
         .left-panel { flex: 7; display: flex; flex-direction: column; padding: 20px; border-right: 1px solid #333; height: 100vh; box-sizing: border-box;}
         .right-panel { flex: 3; display: flex; flex-direction: column; padding: 20px; background: var(--surface); position: relative; height: 100vh; box-sizing: border-box;}
         
-        /* Header & Print Button */
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .header h2 { font-size: 1.8em; font-weight: 800; margin: 0; }
-        .btn-print-setup { background: #333; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 1.1em; font-weight: bold; transition: 0.3s; }
-        .btn-print-setup:hover { background: #555; }
+        .btn-print-setup { background: #007BFF; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 1.1em; font-weight: bold; transition: 0.3s; }
+        .btn-print-setup:hover { background: #0056b3; }
         
-        /* Categories & Menus */
         .menu-list-container { overflow-y: auto; flex-grow: 1; padding-right: 10px; }
         .menu-list-container::-webkit-scrollbar { width: 8px; }
         .menu-list-container::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
-        .menu-list-container::-webkit-scrollbar-track { background: var(--bg); }
 
         .category-section { margin-bottom: 30px; }
         .category-title { font-size: 1.5em; font-weight: bold; color: var(--secondary); margin-bottom: 15px; border-bottom: 2px solid #333; padding-bottom: 5px; }
@@ -33,7 +30,6 @@
         .menu-name { font-size: 1.2em; font-weight: bold; margin-bottom: 10px;}
         .menu-price { color: var(--secondary); font-size: 1.1em; font-weight: bold; }
 
-        /* Cart */
         .right-panel h2 { font-size: 1.6em; font-weight: bold; margin-top: 0;}
         .cart-list { flex: 1; overflow-y: auto; margin-bottom: 20px; padding-right: 5px;}
         .cart-list::-webkit-scrollbar { width: 6px; }
@@ -52,7 +48,6 @@
         .btn-secondary { background: var(--secondary); color: #121212; border: none; padding: 18px; border-radius: 8px; font-size: 1.3em; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; }
         .btn-delete { background: #dc3545; color: white; border: none; border-radius: 6px; padding: 6px 12px; margin-top: 5px; cursor: pointer; font-weight: bold;}
 
-        /* Modals */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 100; }
         .modal-content { background: var(--surface); padding: 30px; border-radius: 15px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; }
         .modal h2 { margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 10px; font-size: 1.6em;}
@@ -61,40 +56,6 @@
         .addon-option { display: flex; justify-content: space-between; padding: 12px; background: #2a2a2a; margin-bottom: 8px; border-radius: 8px; font-size: 1.1em; font-weight: bold; cursor: pointer;}
         .addon-option label { cursor: pointer; display: flex; align-items: center; width: 100%;}
         .addon-option input[type="checkbox"] { transform: scale(1.3); margin-right: 12px; cursor: pointer;}
-
-        /* ==========================================
-           ระบบปริ้นใบเสร็จ (Print CSS) 
-           ซ่อนหน้าจอหลักทั้งหมดและแสดงเฉพาะใบเสร็จ
-           ========================================== */
-        #print-area { display: none; }
-        
-        @media print {
-            /* 1. ซ่อน UI หน้าจอพนักงานทั้งหมด */
-            .left-panel, .right-panel, .modal { display: none !important; }
-            
-            /* 2. เปลี่ยนพื้นหลังและสีตัวอักษรของ Body ให้เหมาะกับการปริ้น */
-            body { background: white !important; color: black !important; display: block; margin: 0; padding: 0; }
-            
-            /* 3. แสดงและตั้งค่าส่วนของใบเสร็จ */
-            #print-area { 
-                display: block !important; 
-                width: 58mm; 
-                margin: 0; 
-                padding: 0; 
-                font-family: 'Cordia New', 'Sarabun', 'Segoe UI', sans-serif; /* ฟอนต์ที่อ่านง่ายบนเครื่องปริ้นสลิป */
-                font-size: 14px; 
-            }
-            .receipt { width: 100%; padding-right: 2mm;} /* เผื่อขอบด้านขวานิดหน่อย */
-            .receipt-logo { width: 70%; display: block; margin: 0 auto 5px auto; }
-            .receipt-text-center { text-align: center; }
-            .receipt-divider { border-bottom: 1px dashed black; margin: 8px 0; width: 100%; }
-            .receipt-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-            .receipt-table th, .receipt-table td { padding: 3px 0; vertical-align: top; }
-            .receipt-table .right { text-align: right; }
-            
-            /* จัดรูปแบบ Addon ในใบเสร็จ */
-            .print-addon { font-size: 12px; color: #333; padding-left: 10px; display: block;}
-        }
     </style>
 </head>
 <body>
@@ -103,7 +64,8 @@
     <div class="left-panel">
         <div class="header">
             <h2>POS System</h2>
-            <button class="btn-print-setup" onclick="setupPrinter()">🖨️ เครื่องปริ้น</button>
+            <!-- เปลี่ยนเป็นปุ่มเชื่อมต่อ Bluetooth -->
+            <button class="btn-print-setup" id="btn-bt-connect" onclick="connectBluetooth()">🔵 เชื่อมต่อเครื่องปริ้น</button>
         </div>
         <div class="menu-list-container" id="menu-list-container">กำลังโหลดข้อมูล...</div>
     </div>
@@ -148,25 +110,27 @@
             <button class="btn-secondary" onclick="processPayment('QRCODE')">📱 QR Code (โชว์จอลูกค้า)</button>
             
             <div id="print-controls" style="display: none; margin-top: 20px; border-top: 1px solid #444; padding-top: 20px;">
-                <button class="btn-secondary" id="btn-print-cust" onclick="printReceipt('customer')" style="margin-bottom:15px;">🖨️ ปริ้นใบเสร็จลูกค้า</button>
-                <button class="btn-main" onclick="printReceipt('shop')">🖨️ ปริ้นใบเสร็จร้านค้า & จบออเดอร์</button>
+                <button class="btn-secondary" onclick="printReceiptBluetooth('customer')" style="margin-bottom:15px;">🖨️ ปริ้นใบเสร็จลูกค้า</button>
+                <button class="btn-main" onclick="printReceiptBluetooth('shop')">🖨️ ปริ้นใบเสร็จร้านค้า & จบออเดอร์</button>
             </div>
         </div>
     </div>
 
-    <!-- Print Area (แสดงเฉพาะตอนสั่งปริ้น) -->
-    <div id="print-area">
-        <div id="receipt-content" class="receipt"></div>
-    </div>
+    <!-- Canvas สำหรับวาดใบเสร็จส่งเข้า Bluetooth (ซ่อนไว้ Width = 384 คือความกว้างของ 58mm) -->
+    <canvas id="receiptCanvas" width="384" style="display:none;"></canvas>
 
     <script>
         // *** ใส่ URL ของ Google Apps Script ของคุณที่นี่ ***
-        const API_URL = 'https://script.google.com/macros/s/AKfycbyTsblHupSi2rU2Ue4kXRRpaH-_EfncjOM2bLt41B3fKOnJOCjnyeinaGoSMo5h9VSsXQ/exec';
+        const API_URL = 'YOUR_GAS_WEB_APP_URL';
 
         let appData = { menus: [], addons: {}, lastOrderId: 0 };
         let cart = [];
         let tempItem = null;
         let currentOrderId = 1;
+        let currentPaymentMethod = '';
+
+        // ตัวแปรสำหรับ Bluetooth
+        let printCharacteristic = null;
 
         window.onload = async () => {
             try {
@@ -180,14 +144,223 @@
             }
         };
 
-        function setupPrinter() {
-            document.getElementById('receipt-content').innerHTML = `
-                <div style="text-align:center;">
-                    <b>TEST PRINT</b><br>กรุณาตั้งค่า 58mm<br>ไม่มีขอบ ไม่มีหัวกระดาษ
-                </div>
-            `;
-            setTimeout(() => { window.print(); }, 500);
+        // ==========================================
+        // ระบบ BLUETOOTH PRINTER
+        // ==========================================
+        async function connectBluetooth() {
+            try {
+                const device = await navigator.bluetooth.requestDevice({
+                    acceptAllDevices: true,
+                    // ใส่ Service UUID กว้างๆ เพื่อค้นหาเครื่องปริ้น
+                    optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2']
+                });
+                
+                const server = await device.gatt.connect();
+                const services = await server.getPrimaryServices();
+                
+                // ค้นหา Characteristic ที่สามารถ "เขียน" ได้
+                for (const service of services) {
+                    const characteristics = await service.getCharacteristics();
+                    for (const char of characteristics) {
+                        if (char.properties.write || char.properties.writeWithoutResponse) {
+                            printCharacteristic = char;
+                            const btn = document.getElementById('btn-bt-connect');
+                            btn.innerText = '✅ ' + device.name;
+                            btn.style.background = '#28a745';
+                            alert('เชื่อมต่อเครื่องปริ้นสำเร็จ!');
+                            return;
+                        }
+                    }
+                }
+                alert('ไม่พบช่องทางการพิมพ์บนอุปกรณ์นี้');
+            } catch (error) {
+                console.error(error);
+                alert('การเชื่อมต่อล้มเหลว: ' + error.message);
+            }
         }
+
+        // ฟังก์ชันโหลดรูปภาพแบบแก้ปัญหา CORS
+        function loadImage(url) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = url;
+            });
+        }
+
+        // สร้างใบเสร็จบน Canvas และสั่งปริ้น
+        async function printReceiptBluetooth(type) {
+            if (!printCharacteristic) {
+                alert('กรุณากดปุ่มเชื่อมต่อเครื่องปริ้น (Bluetooth) ที่มุมขวาบนก่อนครับ');
+                return;
+            }
+
+            const canvas = document.getElementById('receiptCanvas');
+            canvas.height = 2000; // จองความสูงไว้เยอะๆ ป้องกันด้านล่างขาด
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            
+            // พื้นหลังขาว
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'black';
+            
+            let y = 40; // จุดเริ่มต้นบรรทัดแรก
+
+            // Helper function สำหรับวาดตัวหนังสือ
+            function drawText(text, x, align, font) {
+                ctx.textAlign = align;
+                ctx.font = font;
+                ctx.fillText(text, x, y);
+            }
+
+            // 1. หัวใบเสร็จ
+            if (type === 'customer') {
+                try {
+                    const logo = await loadImage('https://img2.pic.in.th/pic/4fde4078-4c1c-4685-b6ba-8278601c1508.png');
+                    const imgWidth = 200;
+                    const imgHeight = (logo.height / logo.width) * imgWidth;
+                    // จัดให้อยู่กึ่งกลาง (384 - 200) / 2 = 92
+                    ctx.drawImage(logo, 92, y, imgWidth, imgHeight);
+                    y += imgHeight + 35;
+                } catch (e) {
+                    drawText('เติมมัทฉะ', 192, 'center', 'bold 32px sans-serif');
+                    y += 45;
+                }
+                drawText('--------------------------------', 192, 'center', 'bold 24px sans-serif');
+                y += 35;
+                drawText(`ออเดอร์ #${currentOrderId}`, 10, 'left', 'bold 26px sans-serif');
+                y += 40;
+            } else {
+                drawText(`ออเดอร์ที่ #${currentOrderId}`, 10, 'left', 'bold 30px sans-serif');
+                y += 40;
+                drawText('--------------------------------', 192, 'center', 'bold 24px sans-serif');
+                y += 35;
+            }
+
+            // 2. หัวตาราง
+            drawText('รายการ', 10, 'left', 'bold 24px sans-serif');
+            // ราคาชิดขวา (ขอบขวาสุดคือ 384 ลบระยะขอบ 10 = 374)
+            drawText('ราคา', 374, 'right', 'bold 24px sans-serif'); 
+            y += 40;
+
+            // Grouping สินค้า
+            let total = 0, discount = 0;
+            let printCart = {};
+            cart.forEach(item => {
+                let itemTotal = item.price;
+                let addons = [];
+                item.selectedAddons.forEach(a => {
+                    itemTotal += a.price;
+                    addons.push(a.name);
+                });
+                
+                if(item.isFree) discount += itemTotal; else total += itemTotal;
+                let key = item.name + addons.join('') + (item.isFree ? 'FREE' : '');
+                
+                if(!printCart[key]) {
+                    printCart[key] = { name: item.name, qty: 0, price: item.isFree ? 0 : itemTotal, addons: addons, isFree: item.isFree };
+                }
+                printCart[key].qty++;
+            });
+
+            // 3. รายการสินค้า
+            for(let key in printCart) {
+                const item = printCart[key];
+                const displayName = `x${item.qty} ${item.name}` + (item.isFree ? ' (ฟรี)' : '');
+                const displayPrice = `${item.price * item.qty}฿`;
+
+                // ตัวหนังสือใหญ่ขึ้น (26px)
+                drawText(displayName, 10, 'left', 'bold 26px sans-serif');
+                drawText(displayPrice, 374, 'right', 'bold 26px sans-serif');
+                y += 35;
+
+                // แอดออน
+                item.addons.forEach(addon => {
+                    drawText(`+ ${addon}`, 35, 'left', '24px sans-serif');
+                    y += 35;
+                });
+            }
+
+            // 4. สรุปยอด
+            y += 10;
+            drawText('--------------------------------', 192, 'center', 'bold 24px sans-serif');
+            y += 40;
+
+            drawText('ส่วนลด', 10, 'left', '26px sans-serif');
+            drawText(`${discount}฿`, 374, 'right', '26px sans-serif');
+            y += 40;
+
+            drawText('รวม', 10, 'left', 'bold 30px sans-serif');
+            drawText(`${total}฿`, 374, 'right', 'bold 30px sans-serif');
+            y += 50;
+
+            if (type === 'customer') {
+                drawText('ขอบคุณลูกค้าทุกท่านนะคะ', 192, 'center', '26px sans-serif');
+                y += 35;
+                drawText('Tel : 083-117-8690', 192, 'center', '26px sans-serif');
+                y += 60;
+            } else {
+                y += 40;
+            }
+
+            // === ส่งข้อมูลเข้าเครื่องปริ้น ===
+            try {
+                // คืนความสูงที่แท้จริงให้ Canvas + ขอบล่าง
+                const printHeight = y; 
+                
+                // แปลงภาพ
+                const escposData = convertCanvasToESCPOS(ctx, 384, printHeight);
+                
+                // ทยอยส่งทีละ Chunk
+                const CHUNK_SIZE = 100;
+                for (let i = 0; i < escposData.length; i += CHUNK_SIZE) {
+                    const chunk = escposData.slice(i, i + CHUNK_SIZE);
+                    await printCharacteristic.writeValue(chunk);
+                }
+
+                if (type === 'shop') {
+                    saveOrderAndFinish();
+                }
+            } catch (e) {
+                alert("ปริ้นล้มเหลว: " + e.message);
+            }
+        }
+
+        // ฟังก์ชันแปลงภาพจาก Canvas เป็นคำสั่งเครื่องปริ้น
+        function convertCanvasToESCPOS(ctx, width, height) {
+            const imgData = ctx.getImageData(0, 0, width, height).data;
+            const xL = (width / 8) % 256;
+            const xH = Math.floor((width / 8) / 256);
+            const yL = height % 256;
+            const yH = Math.floor(height / 256);
+            let bytes = [0x1B, 0x40, 0x1D, 0x76, 0x30, 0x00, xL, xH, yL, yH];
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x += 8) {
+                    let byte = 0;
+                    for (let b = 0; b < 8; b++) {
+                        if (x + b < width) {
+                            const i = ((y * width) + (x + b)) * 4;
+                            // คำนวณความเข้ม
+                            const brightness = (0.299 * imgData[i] + 0.587 * imgData[i+1] + 0.114 * imgData[i+2]);
+                            // ถ้าไม่โปร่งใส และสีเข้ม ให้จุดพิมพ์ทำงาน
+                            if (imgData[i+3] > 128 && brightness < 128) byte |= (1 << (7 - b));
+                        }
+                    }
+                    bytes.push(byte);
+                }
+            }
+            
+            // คำสั่งเลื่อนกระดาษ 4 บรรทัด (ให้กระดาษพ้นที่ฉีก)
+            bytes.push(0x0A, 0x0A, 0x0A, 0x0A); 
+            return new Uint8Array(bytes);
+        }
+
+        // ==========================================
+        // UI และ ฟังก์ชัน POS พื้นฐาน
+        // ==========================================
 
         function renderAllMenus() {
             const container = document.getElementById('menu-list-container');
@@ -273,8 +446,7 @@
         function renderCart() {
             const list = document.getElementById('cart-list');
             list.innerHTML = '';
-            let total = 0;
-            let discount = 0;
+            let total = 0, discount = 0;
 
             cart.forEach((item, index) => {
                 let itemTotal = item.price;
@@ -346,7 +518,6 @@
             localStorage.setItem('pos_state', JSON.stringify(state));
         }
 
-        let currentPaymentMethod = '';
         function processPayment(method) {
             currentPaymentMethod = method;
             document.getElementById('print-controls').style.display = 'block';
@@ -356,102 +527,7 @@
                 state.showQR = true;
                 localStorage.setItem('pos_state', JSON.stringify(state));
             } else {
-                printReceipt('customer');
-            }
-        }
-
-        // สร้างเนื้อหาใบเสร็จให้ตรงรูปแบบที่ต้องการ
-        function generateReceiptHTML(type) {
-            let total = 0, discount = 0;
-            let itemsHTML = '';
-            
-            // Grouping สินค้าที่เหมือนกัน
-            let printCart = {};
-            cart.forEach(item => {
-                let itemTotal = item.price;
-                // สร้าง HTML ของ Addon เพื่อพิมพ์ขึ้นบรรทัดใหม่
-                let printAddonText = ''; 
-                // สร้างข้อความ Addon ไว้เทียบว่าเหมือนกันไหม
-                let compareAddonKey = '';
-                
-                item.selectedAddons.forEach(a => {
-                    itemTotal += a.price;
-                    printAddonText += `<span class="print-addon">+ ${a.name}</span>`;
-                    compareAddonKey += a.name;
-                });
-
-                if(item.isFree) discount += itemTotal; else total += itemTotal;
-                
-                let key = item.name + compareAddonKey + (item.isFree ? 'FREE' : '');
-                
-                if(!printCart[key]) {
-                    printCart[key] = { 
-                        name: item.name + (item.isFree ? ' (ฟรี)' : ''), 
-                        qty: 0, 
-                        price: item.isFree ? 0 : itemTotal,
-                        addonHTML: printAddonText
-                    };
-                }
-                printCart[key].qty++;
-            });
-
-            for(let key in printCart) {
-                itemsHTML += `
-                    <tr>
-                        <td>
-                            x${printCart[key].qty} ${printCart[key].name}
-                            ${printCart[key].addonHTML}
-                        </td>
-                        <td class="right">${printCart[key].price * printCart[key].qty}฿</td>
-                    </tr>
-                `;
-            }
-
-            if(type === 'customer') {
-                return `
-                    <img src="https://img2.pic.in.th/pic/4fde4078-4c1c-4685-b6ba-8278601c1508.png" class="receipt-logo">
-                    <div class="receipt-text-center"><b>เติมมัทฉะ</b></div>
-                    <div class="receipt-divider"></div>
-                    <div><b>ออเดอร์ #${currentOrderId}</b></div>
-                    <table class="receipt-table">
-                        <tr><th>รายการ</th><th class="right">ราคา</th></tr>
-                        ${itemsHTML}
-                    </table>
-                    <div class="receipt-divider"></div>
-                    <table class="receipt-table">
-                        <tr><td>ส่วนลด</td><td class="right">${discount}฿</td></tr>
-                        <tr><td><b>รวม</b></td><td class="right"><b>${total}฿</b></td></tr>
-                    </table>
-                    <div class="receipt-text-center" style="margin-top:10px;">
-                        ขอบคุณลูกค้าทุกท่านนะคะ<br>Tel : 083-117-8690
-                    </div>
-                `;
-            } else {
-                return `
-                    <div><b>ออเดอร์ที่ #${currentOrderId}</b> (${currentPaymentMethod})</div>
-                    <div class="receipt-divider"></div>
-                    <table class="receipt-table">
-                        <tr><th>รายการ</th><th class="right">ราคา</th></tr>
-                        ${itemsHTML}
-                    </table>
-                    <div class="receipt-divider"></div>
-                    <table class="receipt-table">
-                        <tr><td>ส่วนลด</td><td class="right">${discount}฿</td></tr>
-                        <tr><td><b>รวม</b></td><td class="right"><b>${total}฿</b></td></tr>
-                    </table>
-                `;
-            }
-        }
-
-        function printReceipt(type) {
-            // ยัดเนื้อหาใบเสร็จลงใน div #print-area
-            document.getElementById('receipt-content').innerHTML = generateReceiptHTML(type);
-            
-            // สั่งปริ้น (CSS @media print จะทำงานตอนบรรทัดนี้)
-            window.print();
-
-            if (type === 'shop') {
-                saveOrderAndFinish();
+                printReceiptBluetooth('customer');
             }
         }
 
@@ -463,35 +539,25 @@
                 if(!item.isFree) total += itemTotal;
             });
 
-            const payload = {
-                action: 'saveOrder',
-                orderId: currentOrderId,
-                total: total,
-                paymentMethod: currentPaymentMethod
-            };
+            const payload = { action: 'saveOrder', orderId: currentOrderId, total: total, paymentMethod: currentPaymentMethod };
 
             try {
-                const btnShopPrint = document.querySelector('#print-controls .btn-main');
-                const origText = btnShopPrint.innerText;
-                btnShopPrint.innerText = "กำลังบันทึก...";
-                btnShopPrint.disabled = true;
+                const btns = document.querySelectorAll('#print-controls button');
+                btns.forEach(b => b.disabled = true);
+                btns[1].innerText = "กำลังบันทึก...";
 
-                await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(payload),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-                });
+                await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
                 
                 currentOrderId++;
                 cart = [];
                 renderCart();
                 closeModal('payment-modal');
                 
-                btnShopPrint.innerText = origText;
-                btnShopPrint.disabled = false;
+                btns.forEach(b => b.disabled = false);
+                btns[1].innerText = "🖨️ ปริ้นใบเสร็จร้านค้า & จบออเดอร์";
             } catch (err) {
                 alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
-                document.querySelector('#print-controls .btn-main').disabled = false;
+                document.querySelectorAll('#print-controls button').forEach(b => b.disabled = false);
             }
         }
 
@@ -502,7 +568,5 @@
 
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
     </script>
-
-    <canvas id="receiptCanvas" width="384" style="display:none;"></canvas>
 </body>
 </html>
