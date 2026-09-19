@@ -3,125 +3,586 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Facing Display</title>
+    <title>Customer Facing Display - เติมมัทฉะ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #0a0a0a; --surface: #1a1a1a; --primary: #E63946; --secondary: #F4A261; --text: #ffffff; }
-        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
-        
-        .left-panel { flex: 4; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 40px; background: var(--surface); border-right: 2px solid #333; }
-        .logo { max-width: 80%; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .qr-container { display: none; text-align: center; animation: fadeIn 0.5s ease-in-out; }
-        .qr-container img { max-width: 250px; background: white; padding: 10px; border-radius: 10px; }
-        .qr-container h2 { color: var(--secondary); margin-top: 15px; }
+        :root {
+            --bg-base: #0a0a0c;
+            --bg-card: rgba(26, 26, 30, 0.75);
+            --border-glow: rgba(255, 77, 77, 0.2);
+            --primary: #E63946;
+            --primary-glow: rgba(230, 57, 70, 0.35);
+            --secondary: #F4A261;
+            --accent: #E76F51;
+            --text-main: #FFFFFF;
+            --text-muted: #9E9EA7;
+        }
 
-        .right-panel { flex: 6; display: flex; flex-direction: column; padding: 40px; }
-        .cart-header { font-size: 2.5em; margin-bottom: 20px; border-bottom: 3px solid #333; padding-bottom: 10px;   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: bold;}
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-        
-        .cart-list { flex: 1; overflow-y: auto; font-weight: bold;}
-        .cart-item { display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid #333; font-size: 1.5em; animation: slideIn 0.3s ease-out; }
-        .cart-addon { font-size: 0.6em; color: #aaa; margin-top: 5px; }
-        
-        .summary-box { background: var(--surface); padding: 30px; border-radius: 15px; margin-top: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .summary-line { display: flex; justify-content: space-between; font-size: 1.8em; margin-bottom: 15px; color: #ccc; }
-        .total-line { display: flex; justify-content: space-between; font-size: 3.5em; font-weight: bold; color: var(--secondary); border-top: 2px dashed #444; padding-top: 20px; }
+        body {
+            font-family: 'Prompt', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: radial-gradient(circle at 20% 30%, #1e1112 0%, #0a0a0c 75%);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
 
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+        /* Background Animated Glow Accent */
+        body::before {
+            content: '';
+            position: absolute;
+            top: -150px;
+            left: -150px;
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* ========================================================
+           ฝั่งซ้าย: โลโก้ และ คิวอาร์โค้ด (ขยายพื้นที่ให้กว้างขึ้น)
+           ======================================================== */
+        .left-panel {
+            flex: 5.2; /* ปรับขนาดเพิ่มขึ้น */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 35px 40px;
+            background: rgba(18, 18, 22, 0.65);
+            backdrop-filter: blur(16px);
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo-wrap {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: floatSlow 5s ease-in-out infinite;
+        }
+
+        .logo-img {
+            max-width: 250px; /* ขยายโลโก้ให้ใหญ่ชัดเจน */
+            width: 100%;
+            height: auto;
+            border-radius: 20px;
+            filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.6));
+        }
+
+        .brand-subtitle {
+            margin-top: 10px;
+            font-size: 1.15em;
+            color: var(--secondary);
+            font-weight: 500;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* กล่องแสดง QR Code (ใหญ่ โดดเด่น ชัดเจน) */
+        .qr-card {
+            display: none;
+            width: 100%;
+            max-width: 420px;
+            background: linear-gradient(145deg, #1f1f26, #141418);
+            border: 2px solid rgba(244, 162, 97, 0.4);
+            border-radius: 26px;
+            padding: 24px 20px;
+            text-align: center;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(244, 162, 97, 0.2);
+            animation: zoomIn 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .qr-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 1.4em;
+            font-weight: 600;
+            color: var(--secondary);
+            margin-bottom: 15px;
+        }
+
+        .qr-img-box {
+            background: #FFFFFF;
+            padding: 14px;
+            border-radius: 18px;
+            display: inline-block;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        .qr-img-box img {
+            width: 320px; /* ขยาย QR Code ให้ใหญ่พิเศษ */
+            height: 320px;
+            display: block;
+            object-fit: contain;
+        }
+
+        .qr-amount-pill {
+            margin-top: 16px;
+            background: rgba(230, 57, 70, 0.15);
+            border: 1px solid rgba(230, 57, 70, 0.4);
+            color: #FFF;
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-size: 1.25em;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        /* กล่องข้อความต้อนรับ (แสดงตอนที่ยังไม่ได้กดชำระ QR Code) */
+        .welcome-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            color: var(--text-muted);
+            margin-bottom: 30px;
+        }
+
+        .welcome-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 18px;
+            border-radius: 50px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--secondary);
+            font-size: 1.05em;
+            margin-bottom: 12px;
+        }
+
+        /* ========================================================
+           ฝั่งขวา: รายการสินค้า และ ราคารวม (ลดขนาดลงเล็กน้อย)
+           ======================================================== */
+        .right-panel {
+            flex: 4.8; /* ลดขนาดลงเล็กน้อยให้กระชับลง */
+            display: flex;
+            flex-direction: column;
+            padding: 35px 35px 30px 35px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+            margin-bottom: 16px;
+        }
+
+        .panel-title {
+            font-size: 2em;
+            font-weight: 700;
+            background: linear-gradient(90deg, #FFFFFF, #E0E0E6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .items-count {
+            font-size: 1.1em;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        /* รายการสินค้า (Scrollable) */
+        .cart-list {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 12px;
+            margin-bottom: 16px;
+        }
+
+        .cart-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .cart-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+        }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 16px 18px;
+            margin-bottom: 10px;
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            animation: slideInRight 0.35s ease;
+            backdrop-filter: blur(8px);
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #FFFFFF;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .item-qty-badge {
+            background: var(--primary);
+            color: white;
+            font-size: 0.75em;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+
+        .item-free-badge {
+            color: var(--primary);
+            font-size: 0.85em;
+            font-weight: 600;
+            background: rgba(230, 57, 70, 0.12);
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
+
+        .item-addons {
+            font-size: 0.95em;
+            color: var(--text-muted);
+            margin-top: 6px;
+            line-height: 1.4;
+        }
+
+        .item-price {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: var(--secondary);
+            margin-left: 15px;
+            white-space: nowrap;
+        }
+
+        .empty-cart-state {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-muted);
+            font-size: 1.4em;
+            gap: 12px;
+            opacity: 0.6;
+        }
+
+        /* การ์ดสรุปยอดเงินด้านล่าง */
+        .summary-card {
+            background: linear-gradient(135deg, rgba(30, 30, 36, 0.9), rgba(20, 20, 24, 0.95));
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 22px;
+            padding: 22px 26px;
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(12px);
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.25em;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .summary-row.discount {
+            color: #4ade80;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            border-top: 1px dashed rgba(255, 255, 255, 0.18);
+            padding-top: 14px;
+            margin-top: 6px;
+        }
+
+        .total-label {
+            font-size: 1.7em;
+            font-weight: 600;
+            color: #FFFFFF;
+        }
+
+        .total-amount {
+            font-size: 3.2em;
+            font-weight: 800;
+            color: var(--secondary);
+            text-shadow: 0 0 25px rgba(244, 162, 97, 0.3);
+            line-height: 1;
+        }
+
+        /* ========================================================
+           โฆษณาพักหน้าจอ (Inactivity Screensaver Overlay)
+           ======================================================== */
+        #ad-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #000000;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            /* Fade In / Out ที่นุ่มนวลเป็นพิเศษ */
+            transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.8s ease;
+            pointer-events: none;
+        }
+
+        #ad-overlay.active {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        #ad-overlay img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* โชว์ Presentation เต็มสัดส่วนสวยงาม */
+            background: #000;
+        }
+
+        /* Animations */
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(25px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes zoomIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
     </style>
 </head>
 <body>
 
+    <div id="ad-overlay">
+        <img src="https://img1.pic.in.th/images/Green-Modern-Drink-Presentation.gif" alt="Advertisement">
+    </div>
+
     <div class="left-panel">
-        <img src="https://img2.pic.in.th/-14bef4c1d6171bace.gif" class="logo" alt="Logo">
-        <div class="qr-container" id="qr-container">
-            <img id="qr-image" src="" alt="QR Code">
-            <h2>สแกนเพื่อชำระเงิน</h2>
+        <div class="logo-wrap">
+            <img src="https://img2.pic.in.th/-14bef4c1d6171bace.gif" class="logo-img" alt="Logo">
+            <div class="brand-subtitle">เติมมัทฉะ • Matcha & Drinks</div>
+        </div>
+
+        <div class="welcome-box" id="welcome-box">
+            <div class="welcome-badge">🍃 สดชื่น ทุกแก้ว เข้มข้น ทุกสัมผัส</div>
+            <p style="font-size: 1.1em; color: #777;">ตรวจสอบรายการสินค้าได้จากจอทางขวามือนะคะ</p>
+        </div>
+
+        <div class="qr-card" id="qr-card">
+            <div class="qr-card-header">
+                <span>📱 สแกนชำระผ่าน PromptPay</span>
+            </div>
+            <div class="qr-img-box">
+                <img id="qr-image" src="" alt="PromptPay QR Code">
+            </div>
+            <br>
+            <div class="qr-amount-pill">
+                ยอดชำระ: <span id="qr-amount-val" style="color: var(--secondary);">0฿</span>
+            </div>
+        </div>
+
+        <div style="font-size: 0.95em; color: #555; text-align: center;">
+            ยินดีให้บริการค่ะ ขอบคุณที่แวะมาอุดหนุนนะคะ 🙏
         </div>
     </div>
 
     <div class="right-panel">
-        <div class="cart-header">
-  <span>รายการ Order</span>
-  <span>ราคา</span>
-</div>
-        <div class="cart-list" id="cart-list"></div>
-        <div class="summary-box">
-            <div class="summary-line"><span>ส่วนลด (Discount)</span><span id="discount-val">0฿</span></div>
-            <div class="total-line"><span>รวม (Total)</span><span id="total-val">0฿</span></div>
+        <div class="panel-header">
+            <div class="panel-title">รายการสินค้า (My Order)</div>
+            <div class="items-count" id="items-count-display">0 รายการ</div>
+        </div>
+
+        <div class="cart-list" id="cart-list">
+            <div class="empty-cart-state">
+                <div>🍵</div>
+                <div>ยังไม่มีรายการสินค้าที่เลือก</div>
+            </div>
+        </div>
+
+        <div class="summary-card">
+            <div class="summary-row discount">
+                <span>ส่วนลด (Discount)</span>
+                <span id="discount-val">0฿</span>
+            </div>
+            <div class="total-row">
+                <div class="total-label">รวมทั้งหมด (Total)</div>
+                <div class="total-amount" id="total-val">0฿</div>
+            </div>
         </div>
     </div>
 
     <script>
-        // เบอร์พร้อมเพย์ของคุณ
         const PROMPTPAY_PHONE = '0831178690';
+        let adTimeout = null;
+        let lastCartSignature = ""; // ไว้เปรียบเทียบว่ามีรายการถูกเพิ่มหรือเปลี่ยนแปลงหรือไม่
 
-        function updateUI() {
-            const stateStr = localStorage.getItem('pos_state');
-            if (!stateStr) return;
-            const state = JSON.parse(stateStr);
-            
-            // Render Cart
-            const list = document.getElementById('cart-list');
-            list.innerHTML = '';
-            
-            // Group เหมือนตอนปริ้น
-            let printCart = {};
-            state.cart.forEach(item => {
-                let itemTotal = item.price;
-                let addonText = '';
-                item.selectedAddons.forEach(a => {
-                    itemTotal += a.price;
-                    addonText += `+ ${a.name} `;
-                });
-                
-                let key = item.name + addonText + (item.isFree ? 'FREE' : '');
-                if(!printCart[key]) {
-                    printCart[key] = { 
-                        name: item.name + (item.isFree ? ' <span style="color:var(--primary)">(ฟรี)</span>' : ''), 
-                        qty: 0, 
-                        price: item.isFree ? 0 : itemTotal,
-                        addon: addonText
-                    };
-                }
-                printCart[key].qty++;
-            });
+        // ==========================================
+        // ระบบนับเวลาโฆษณา (Screensaver Inactivity Timer)
+        // ==========================================
+        function resetAdTimer() {
+            // ซ่อนโฆษณาด้วย Smooth Fade Out
+            hideAd();
 
-            for(let key in printCart) {
-                list.innerHTML += `
-                    <div class="cart-item">
-                        <div>
-                            ${printCart[key].qty}x ${printCart[key].name}
-                            <div class="cart-addon">${printCart[key].addon}</div>
-                        </div>
-                        <div>${printCart[key].price * printCart[key].qty}฿</div>
-                    </div>
-                `;
-            }
+            // ล้างตัวนับเวลาเดิม แล้วเริ่มนับ 30 วินาทีใหม่
+            clearTimeout(adTimeout);
+            adTimeout = setTimeout(() => {
+                showAd();
+            }, 30000); // 30,000 ms = 30 วินาที
+        }
 
-            // Update Totals
-            document.getElementById('discount-val').innerText = state.discount + '฿';
-            document.getElementById('total-val').innerText = state.total + '฿';
-
-            // Show/Hide QR
-            const qrContainer = document.getElementById('qr-container');
-            if (state.showQR && state.total > 0) {
-                // ใช้ API สร้าง QR PromptPay
-                document.getElementById('qr-image').src = `https://promptpay.io/${PROMPTPAY_PHONE}/${state.total}.png`;
-                qrContainer.style.display = 'block';
-            } else {
-                qrContainer.style.display = 'none';
+        function showAd() {
+            const adOverlay = document.getElementById('ad-overlay');
+            if (adOverlay) {
+                adOverlay.classList.add('active');
             }
         }
 
-        // ฟังการเปลี่ยนแปลงของ localStorage จากหน้าจอหลัก
+        function hideAd() {
+            const adOverlay = document.getElementById('ad-overlay');
+            if (adOverlay) {
+                adOverlay.classList.remove('active');
+            }
+        }
+
+        // ==========================================
+        // อัปเดตข้อมูล UI ตาม State ของหน้าพนักงาน
+        // ==========================================
+        function updateUI() {
+            const stateStr = localStorage.getItem('pos_state');
+            if (!stateStr) return;
+            
+            const state = JSON.parse(stateStr);
+            const cart = state.cart || [];
+
+            // ตรวจจับว่ามีการเปลี่ยนแปลงในรายการสินค้าหรือไม่
+            const currentCartSignature = JSON.stringify(cart);
+            if (currentCartSignature !== lastCartSignature) {
+                lastCartSignature = currentCartSignature;
+                // ถ้ามีการเพิ่ม/ลดรายการสินค้า ให้ปลุกจอ ปิดโฆษณา และรีเซ็ตเวลานับถอยหลัง 30 วินาทีทันที
+                resetAdTimer();
+            }
+
+            const list = document.getElementById('cart-list');
+            const itemsCountDisplay = document.getElementById('items-count-display');
+
+            if (cart.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-cart-state">
+                        <div>🍵</div>
+                        <div>ยังไม่มีรายการสินค้าที่เลือก</div>
+                    </div>
+                `;
+                itemsCountDisplay.innerText = "0 รายการ";
+            } else {
+                // ทำการรวมกลุ่มสินค้า (Grouping)
+                let printCart = {};
+                let totalItemsCount = 0;
+
+                cart.forEach(item => {
+                    totalItemsCount++;
+                    let itemTotal = item.price;
+                    let addonText = '';
+                    if (item.selectedAddons && item.selectedAddons.length > 0) {
+                        item.selectedAddons.forEach(a => {
+                            itemTotal += a.price;
+                            addonText += `+ ${a.name} `;
+                        });
+                    }
+
+                    let key = item.name + addonText + (item.isFree ? 'FREE' : '');
+                    if (!printCart[key]) {
+                        printCart[key] = {
+                            name: item.name,
+                            qty: 0,
+                            price: item.isFree ? 0 : itemTotal,
+                            addon: addonText,
+                            isFree: item.isFree
+                        };
+                    }
+                    printCart[key].qty++;
+                });
+
+                list.innerHTML = '';
+                for (let key in printCart) {
+                    const item = printCart[key];
+                    list.innerHTML += `
+                        <div class="cart-item">
+                            <div class="item-info">
+                                <div class="item-title">
+                                    <span class="item-qty-badge">x${item.qty}</span>
+                                    <span>${item.name}</span>
+                                    ${item.isFree ? '<span class="item-free-badge">แก้วฟรี</span>' : ''}
+                                </div>
+                                ${item.addon ? `<div class="item-addons">${item.addon}</div>` : ''}
+                            </div>
+                            <div class="item-price">${item.price * item.qty}฿</div>
+                        </div>
+                    `;
+                }
+                itemsCountDisplay.innerText = `${totalItemsCount} รายการ`;
+            }
+
+            // แสดงยอดเงิน
+            document.getElementById('discount-val').innerText = (state.discount || 0) + '฿';
+            document.getElementById('total-val').innerText = (state.total || 0) + '฿';
+
+            // จัดการเปิด/ปิด QR Code
+            const qrCard = document.getElementById('qr-card');
+            const welcomeBox = document.getElementById('welcome-box');
+
+            if (state.showQR && state.total > 0) {
+                // ปลุกจอทันทีหากเข้าสู่ขั้นตอนชำระเงิน
+                resetAdTimer();
+
+                document.getElementById('qr-image').src = `https://promptpay.io/${PROMPTPAY_PHONE}/${state.total}.png`;
+                document.getElementById('qr-amount-val').innerText = state.total + '฿';
+                qrCard.style.display = 'block';
+                welcomeBox.style.display = 'none';
+            } else {
+                qrCard.style.display = 'none';
+                welcomeBox.style.display = 'flex';
+            }
+        }
+
+        // ดักจับ Event เมื่อหน้าพนักงานมีการสั่งอัปเดตข้อมูล
         window.addEventListener('storage', updateUI);
-        
-        // อัปเดตครั้งแรกตอนเปิดหน้า
-        updateUI();
+
+        // เริ่มต้นการทำงานเมื่อโหลดหน้าเสร็จ
+        window.onload = () => {
+            updateUI();
+            resetAdTimer(); // เริ่มนับ 30 วินาทีแรก
+        };
     </script>
 </body>
 </html>
