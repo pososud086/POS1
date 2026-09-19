@@ -460,20 +460,43 @@
             }
         }
 
-        function requestPointPrint(cups) {
+function requestPointPrint(cups) {
             if (!printCharacteristic) {
                 alert("กรุณาเชื่อมต่อเครื่องปริ้นที่ปุ่มสีน้ำเงินด้านบนก่อนครับ!");
                 return;
             }
             
-            showBackgroundTask(`กำลังสร้างแต้ม ${cups} แก้ว...`);
+            // แสดงสถานะการโหลดที่มุมขวาบน
+            const loadingToast = showToast(`กำลังดึงโค้ดสะสมแต้ม ${cups} แก้ว... 🍵`);
             
-            fetch(`${POINTS_API_URL}?action=generate&cups=${cups}`)
-                .then(response => response.json())
-                .then(data => handlePointPrint(data))
-                .catch(error => {
-                    hideBackgroundTask("สร้างแต้มล้มเหลว", true);
-                });
+            // 💡 เทคนิค: Google Apps Script Web App เมื่อส่งค่ากลับเป็น JSON มักจะทำการ Redirect (302) ไปยัง script.googleusercontent.com 
+            // ทำให้ fetch แบบปกติอาจเกิด Error 404 ได้ เราต้องเพิ่ม mode: 'cors' 
+            // แต่ปกติ fetch() ค่าเริ่มต้นรองรับอยู่แล้ว ดังนั้นปัญหา 404 คือ URL เก่า หรือไม่ได้ตั้งสิทธิ์ Anyone
+            
+            fetch(`${POINTS_API_URL}?action=generate&cups=${cups}`, {
+                method: 'GET',
+                // redirect: 'follow' คือกุญแจสำคัญให้ตามไปเอาค่าจาก URL ปลายทางของ Google
+                redirect: 'follow' 
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    loadingToast.innerText = `ดึงโค้ดสำเร็จ กำลังปริ้น... 🖨️`;
+                    handlePointPrint(data, loadingToast);
+                } else {
+                    throw new Error("ข้อมูลไม่สมบูรณ์");
+                }
+            })
+            .catch(error => {
+                loadingToast.remove();
+                showToast(`ดึงโค้ดแต้มล้มเหลว: ${error.message} (กรุณาเช็ค URL ของ API)`, 'error');
+                console.error("Fetch Error:", error);
+            });
         }
 
         async function handlePointPrint(data) {
