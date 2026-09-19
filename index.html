@@ -198,8 +198,12 @@
         // URL สำหรับ API ต่างๆ
         // ==========================================
         const POS_API_URL = 'https://script.google.com/macros/s/AKfycbyTsblHupSi2rU2Ue4kXRRpaH-_EfncjOM2bLt41B3fKOnJOCjnyeinaGoSMo5h9VSsXQ/exec';
-        const POINTS_API_URL = 'https://script.google.com/macros/s/AKfycby1OXK2Gd7WN4ovExuPs5ymEvRA32AjZMt1jM9ACWnacpot3BLPvFzqU6lii1dCTVlPcw/exec';
-
+        // ==========================================
+        
+        // --- เพิ่ม 2 บรรทัดนี้ ---
+        const SUPABASE_URL = 'https://lcdukrjagsxqthkrfpqz.supabase.co'; 
+        const SUPABASE_KEY = 'sb_publishable_JNgfg6irQjSXok6R-70bWg_onj9pyoh';
+        
         let appData = { menus: [], addons: {}, lastOrderId: 0 };
         let cart = [];
         let tempItem = null;
@@ -498,38 +502,52 @@ function requestPointPrint(cups) {
                 return;
             }
             
-            // แสดงสถานะการโหลดที่มุมขวาบน
-            const loadingToast = showToast(`กำลังดึงโค้ดสะสมแต้ม ${cups} แก้ว... 🍵`);
+            const loadingToast = showToast(`กำลังสร้างโค้ดสะสมแต้ม ${cups} แก้ว... 🍵`);
             
-            // 💡 เทคนิค: Google Apps Script Web App เมื่อส่งค่ากลับเป็น JSON มักจะทำการ Redirect (302) ไปยัง script.googleusercontent.com 
-            // ทำให้ fetch แบบปกติอาจเกิด Error 404 ได้ เราต้องเพิ่ม mode: 'cors' 
-            // แต่ปกติ fetch() ค่าเริ่มต้นรองรับอยู่แล้ว ดังนั้นปัญหา 404 คือ URL เก่า หรือไม่ได้ตั้งสิทธิ์ Anyone
+            // 1. สร้างโค้ดที่ฝั่งเบราว์เซอร์เลยเพื่อให้เร็วที่สุด (Timestamp + Random 4 ตัว + จำนวนแก้ว)
+            const now = new Date();
+            const timeStr = now.getTime().toString(36).toUpperCase();
+            const randomChars = Math.random().toString(36).substring(2, 6).toUpperCase();
+            const cupsStr = ("0" + cups).slice(-2);
+            const code = `${timeStr}${randomChars}${cupsStr}`;
             
-            fetch(`${POINTS_API_URL}?action=generate&cups=${cups}`, {
-                method: 'GET',
-                // redirect: 'follow' คือกุญแจสำคัญให้ตามไปเอาค่าจาก URL ปลายทางของ Google
-                redirect: 'follow' 
+            // 2. คำนวณวันหมดอายุ +30 วัน
+            const expDate = new Date();
+            expDate.setDate(expDate.getDate() + 30);
+            const expiryDate = `${expDate.getDate()}/${expDate.getMonth()+1}/${expDate.getFullYear()}`;
+
+            const payload = {
+                code: code,
+                cups: cups,
+                expiry_date: expiryDate
+            };
+
+            // 3. ยิงข้อมูลเข้า Supabase 
+            fetch(`${SUPABASE_URL}/rest/v1/point_codes`, {
+                method: 'POST',
+                headers: {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify(payload)
             })
             .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success') {
-                    loadingToast.innerText = `ดึงโค้ดสำเร็จ กำลังปริ้น... 🖨️`;
-                    handlePointPrint(data, loadingToast);
-                } else {
-                    throw new Error("ข้อมูลไม่สมบูรณ์");
-                }
+                if (!response.ok) throw new Error('Failed to save to Supabase');
+                
+                loadingToast.innerText = `สร้างโค้ดสำเร็จ กำลังปริ้น... 🖨️`;
+                // ส่งข้อมูลไปวาดลง Canvas และปริ้น
+                handlePointPrint(payload, loadingToast); 
             })
             .catch(error => {
                 loadingToast.remove();
-                showToast(`ดึงโค้ดแต้มล้มเหลว: ${error.message} (กรุณาเช็ค URL ของ API)`, 'error');
-                console.error("Fetch Error:", error);
+                showToast(`สร้างโค้ดแต้มล้มเหลว: ${error.message}`, 'error');
             });
         }
+        
+        // หมายเหตุ: ฟังก์ชัน handlePointPrint() ไม่ต้องแก้ไข ใช้ตัวเดิมที่คุณมีได้เลยครับ 
+        // เพราะรับพารามิเตอร์ (data, loadingToast) เหมือนเดิม
 
         async function handlePointPrint(data) {
             try {
@@ -757,8 +775,7 @@ function requestPointPrint(cups) {
             }
         }
 
-        // ฟังก์ชันจบออเดอร์ ทำงานเบื้องหลัง ไม่หน่วงหน้าจอ
-        function saveOrderAndFinish() {
+async function saveOrderAndFinish() {
             let total = 0;
             cart.forEach(item => {
                 let itemTotal = item.price;
@@ -766,30 +783,51 @@ function requestPointPrint(cups) {
                 if(!item.isFree) total += itemTotal;
             });
 
-            const payload = { action: 'saveOrder', orderId: currentOrderId, total: total, paymentMethod: currentPaymentMethod };
+            const savedOrderId = currentOrderId;
+            
+            // สร้างวันที่รูปแบบ dd/mm/yyyy
+            const d = new Date();
+            const dateStr = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
 
-            // 1. โชว์ Loading เบื้องหลัง
-            showBackgroundTask(`กำลังบันทึกออเดอร์ #${currentOrderId}...`);
+            // รูปแบบข้อมูลที่ตรงกับตาราง pos_orders ใน Supabase
+            const payload = { 
+                order_id: savedOrderId, 
+                date_str: dateStr, 
+                total: total, 
+                payment_method: currentPaymentMethod 
+            };
 
-            // 2. เคลียร์ข้อมูลและปิดหน้าต่างให้พนักงานรับคิวใหม่ทันที
-            const savedOrderId = currentOrderId; // จำเลขนี้ไว้แจ้งเตือน
+            // 1. เคลียร์ตะกร้า ปิดหน้าต่าง เตรียมรับลูกค้าคนต่อไปทันที
             currentOrderId++;
             cart = [];
             renderCart();
             closeModal('payment-modal');
 
-            // 3. ส่งข้อมูลไป Google Sheet เบื้องหลังเงียบๆ
-            fetch(POS_API_URL, { 
-                method: 'POST', 
-                body: JSON.stringify(payload), 
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' } 
-            })
-            .then(res => {
-                hideBackgroundTask(`บันทึก #${savedOrderId} สำเร็จ ✅`);
-            })
-            .catch(err => {
-                hideBackgroundTask(`บันทึก #${savedOrderId} ล้มเหลว ❌`, true);
-            });
+            // 2. แสดง Toast
+            const loadingToast = showToast(`กำลังบันทึกออเดอร์ #${savedOrderId}...`);
+
+            // 3. ยิงข้อมูลเข้า Supabase โดยตรง (เสร็จในหลักมิลลิวินาที)
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/pos_orders`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal' // บอกให้ Supabase บันทึกเสร็จแล้วไม่ต้องส่งข้อมูลกลับมา (ประหยัดเน็ต)
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) throw new Error('Network Error');
+
+                loadingToast.className = 'toast success';
+                loadingToast.innerText = `บันทึกออเดอร์ #${savedOrderId} สำเร็จ ✅`;
+                setTimeout(() => { if(loadingToast.parentElement) loadingToast.remove(); }, 3000);
+            } catch (err) {
+                loadingToast.remove();
+                showToast(`บันทึกออเดอร์ #${savedOrderId} ล้มเหลว!`, 'error');
+            }
         }
 
         function updateCustomerDisplay(total = 0, discount = 0) {
