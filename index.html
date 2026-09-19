@@ -103,6 +103,15 @@
             animation: spin 1s linear infinite;
         }
 
+        /* Background Loading Toast (ทำงานเบื้องหลัง) */
+        .toast-container { position: absolute; top: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background: rgba(30, 30, 30, 0.9); color: white; padding: 15px 25px; border-left: 5px solid var(--secondary); border-radius: 8px; font-size: 1.1em; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.5); animation: slideIn 0.3s ease, fadeOut 0.5s ease 3s forwards; }
+        .toast.success { border-color: #28a745; }
+        .toast.error { border-color: #dc3545; animation: slideIn 0.3s ease; /* Error ไม่ปิดเอง */ }
+        
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; display: none; } }
+
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes slideOutRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
@@ -115,6 +124,8 @@
         <div class="spinner" id="bg-task-spinner"></div>
         <span id="bg-task-text">กำลังบันทึกข้อมูล...</span>
     </div>
+
+    <div class="toast-container" id="toast-container"></div>
 
     <!-- Main UI (พนักงาน) -->
     <div class="left-panel">
@@ -198,6 +209,27 @@
 
         // ระบบคิวงานเบื้องหลัง
         let activeTasks = 0;
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return { remove: () => {}, innerText: '' }; // กันพังถ้าลืมใส่ HTML
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerText = message;
+            
+            // ถ้าเป็น error ให้มีปุ่มกากบาทปิด
+            if(type === 'error') {
+                toast.innerHTML += ' <span style="cursor:pointer; float:right; margin-left: 10px;" onclick="this.parentElement.remove()">✖</span>';
+                toast.style.animation = 'slideIn 0.3s ease'; // ปิด fadeOut ทิ้ง เพื่อให้ Error โชว์ค้าง
+            } else {
+                // ถ้าเป็น info หรือ success จะลบตัวเองทิ้งใน 3.5 วินาที
+                setTimeout(() => { if(toast.parentElement) toast.remove(); }, 3500);
+            }
+            
+            container.appendChild(toast);
+            return toast; // คืนค่าตัวมันเอง เพื่อให้ฟังก์ชันอื่นแก้ไขข้อความ (เช่น กำลังดึง -> สำเร็จ)
+        }
 
         window.onload = async () => {
             generatePointButtons();
