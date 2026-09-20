@@ -497,15 +497,14 @@
             }
         }
 
-function requestPointPrint(cups) {
+async function requestPointPrint(cups) {
             if (!printCharacteristic) {
                 alert("กรุณาเชื่อมต่อเครื่องปริ้นที่ปุ่มสีน้ำเงินด้านบนก่อนครับ!");
                 return;
             }
             
-            const loadingToast = showToast(`กำลังสร้างโค้ดสะสมแต้ม ${cups} แก้ว... 🍵`);
+            const loadingToast = showToast(`กำลังตรวจสอบและสร้างโค้ด ${cups} แก้ว... 🍵`);
             
-            // 1. ฟังก์ชันช่วยสร้างข้อความสุ่มผสมตัวอักษรใหญ่ เล็ก และตัวเลข
             function generateRandomString(length) {
                 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
                 let result = '';
@@ -515,56 +514,77 @@ function requestPointPrint(cups) {
                 return result;
             }
 
-            // 2. สร้างโค้ด: 10 หลักแรกสุ่มมั่ว + 2 หลักสุดท้ายจำนวนแก้ว (ใส่เลข 0 นำหน้าถ้าไม่ถึง 10)
-            const random10 = generateRandomString(10);
-            const cupsStr = ("0" + cups).slice(-2);
-            const code = `${random10}${cupsStr}`;
-            
-            // 3. คำนวณวันหมดอายุ +30 วัน (จัดฟอร์แมตวันที่ให้ถูกต้อง ไม่เป็น undefined)
+            // คำนวณวันหมดอายุ +30 วัน (คำนวณครั้งเดียวพอ)
             const expDate = new Date();
             expDate.setDate(expDate.getDate() + 30);
-            
             const dd = ("0" + expDate.getDate()).slice(-2);
-            const mm = ("0" + (expDate.getMonth() + 1)).slice(-2); // เดือนใน JS เริ่มจาก 0 เลยต้อง +1
+            const mm = ("0" + (expDate.getMonth() + 1)).slice(-2); 
             const yyyy = expDate.getFullYear();
-            
-            const expiryDate = `${dd}/${mm}/${yyyy}`; // ผลลัพธ์จะเป็น เช่น 20/10/2026
+            const expiryDate = `${dd}/${mm}/${yyyy}`;
 
-            // เตรียมข้อมูลส่งเข้า Supabase
-            const payload = {
-                code: code,
-                cups: cups,
-                expiry_date: expiryDate
-            };
+            let isSaved = false;
+            let finalCode = "";
 
-            // 4. ยิงข้อมูลเข้า Supabase 
-            fetch(`${SUPABASE_URL}/rest/v1/point_codes`, {
-                method: 'POST',
-                headers: {
-                    'apikey': SUPABASE_KEY,
-                    'Authorization': `Bearer ${SUPABASE_KEY}`,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'return=minimal'
-                },
-                body: JSON.stringify(payload)
-            })
-            .then(response => {
-                if (!response.ok) throw new Error('Failed to save to Supabase');
-                
-                loadingToast.innerText = `สร้างโค้ดสำเร็จ กำลังปริ้น... 🖨️`;
-                
-                // ส่งข้อมูลไปวาดลง Canvas และปริ้น (ในฟังก์ชัน handlePointPrint)
-                // สำคัญ: ต้องแน่ใจว่าตัวแปรที่ส่งไปคือ payload ซึ่งมี property expiry_date และ cups ครบถ้วน
-                handlePointPrint({
-                    code: payload.code,
-                    cups: payload.cups,
-                    expiryDate: payload.expiry_date // เปลี่ยนชื่อ Key ให้ตรงกับที่ handlePointPrint เรียกใช้ (อูฐ)
-                }, loadingToast); 
-            })
-            .catch(error => {
+            try {
+                // ลูปพยายามสร้างและบันทึกโค้ด (จำกัดไม่เกิน 5 รอบเพื่อป้องกันแอพค้างหากเน็ตพัง)
+                let attempts = 0;
+                while (!isSaved && attempts < 5) {
+                    attempts++;
+                    
+                    // 1. สุ่มรหัสใหม่ 10 หลักแรก + 2 หลักท้าย
+                    const random10 = generateRandomString(10);
+                    const cupsStr = ("0" + cups).slice(-2);
+                    const code = `${random10}${cupsStr}`;
+                    
+                    const payload = {
+                        code: code,
+                        cups: cups,
+                        expiry_date: expiryDate
+                    };
+
+                    // 2. ลองยิงเข้า Supabase (ถ้าคุณตั้ง Unique Constraint ไว้ ถ้าซ้ำมันจะ Error 409)
+                    const response = await fetch(`${SUPABASE_URL}/rest/v1/point_codes`, {
+                        method: 'POST',
+                        headers: {
+                            'apikey': SUPABASE_KEY,
+                            'Authorization': `Bearer ${SUPABASE_KEY}`,
+                            'Content-Type': 'application/json',
+                            'Prefer': 'return=minimal' // ไม่ต้องรับ data กลับมา
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        // บันทึกสำเร็จ (ไม่ซ้ำ)
+                        isSaved = true;
+                        finalCode = code;
+                    } else if (response.status === 409) {
+                        // Status 409 หมายถึง Conflict (ข้อมูลซ้ำ) ระบบจะรันลูป while ใหม่อีกรอบเพื่อสุ่มใหม่
+                        console.warn(`โค้ด ${code} ซ้ำ! กำลังสุ่มใหม่...`);
+                    } else {
+                        // Error อื่นๆ เช่น อินเทอร์เน็ตหลุด, API คีย์ผิด
+                        throw new Error(`Supabase Error: ${response.status}`);
+                    }
+                }
+
+                // ออกจากลูปแล้ว เช็คว่าบันทึกสำเร็จจริงหรือไม่
+                if (isSaved) {
+                    loadingToast.innerText = `สร้างโค้ดสำเร็จ กำลังปริ้น... 🖨️`;
+                    
+                    // เรียกฟังก์ชันวาดรูปลงกระดาษ
+                    handlePointPrint({
+                        code: finalCode,
+                        cups: cups,
+                        expiryDate: expiryDate 
+                    }, loadingToast);
+                } else {
+                    throw new Error("ไม่สามารถสร้างรหัสที่ไม่ซ้ำได้หลังจากพยายามหลายครั้ง");
+                }
+
+            } catch (error) {
                 loadingToast.remove();
-                showToast(`สร้างโค้ดแต้มล้มเหลว: ${error.message}`, 'error');
-            });
+                showToast(`ล้มเหลว: ${error.message}`, 'error');
+            }
         }
         async function handlePointPrint(data) {
             try {
