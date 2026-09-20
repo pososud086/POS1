@@ -505,25 +505,39 @@ function requestPointPrint(cups) {
             
             const loadingToast = showToast(`กำลังสร้างโค้ดสะสมแต้ม ${cups} แก้ว... 🍵`);
             
-            // 1. สร้างโค้ดที่ฝั่งเบราว์เซอร์เลยเพื่อให้เร็วที่สุด (Timestamp + Random 4 ตัว + จำนวนแก้ว)
-            const now = new Date();
-            const timeStr = now.getTime().toString(36).toUpperCase();
-            const randomChars = Math.random().toString(36).substring(2, 6).toUpperCase();
+            // 1. ฟังก์ชันช่วยสร้างข้อความสุ่มผสมตัวอักษรใหญ่ เล็ก และตัวเลข
+            function generateRandomString(length) {
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                let result = '';
+                for (let i = 0; i < length; i++) {
+                    result += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                return result;
+            }
+
+            // 2. สร้างโค้ด: 10 หลักแรกสุ่มมั่ว + 2 หลักสุดท้ายจำนวนแก้ว (ใส่เลข 0 นำหน้าถ้าไม่ถึง 10)
+            const random10 = generateRandomString(10);
             const cupsStr = ("0" + cups).slice(-2);
-            const code = `${timeStr}${randomChars}${cupsStr}`;
+            const code = `${random10}${cupsStr}`;
             
-            // 2. คำนวณวันหมดอายุ +30 วัน
+            // 3. คำนวณวันหมดอายุ +30 วัน (จัดฟอร์แมตวันที่ให้ถูกต้อง ไม่เป็น undefined)
             const expDate = new Date();
             expDate.setDate(expDate.getDate() + 30);
-            const expiryDate = `${expDate.getDate()}/${expDate.getMonth()+1}/${expDate.getFullYear()}`;
+            
+            const dd = ("0" + expDate.getDate()).slice(-2);
+            const mm = ("0" + (expDate.getMonth() + 1)).slice(-2); // เดือนใน JS เริ่มจาก 0 เลยต้อง +1
+            const yyyy = expDate.getFullYear();
+            
+            const expiryDate = `${dd}/${mm}/${yyyy}`; // ผลลัพธ์จะเป็น เช่น 20/10/2026
 
+            // เตรียมข้อมูลส่งเข้า Supabase
             const payload = {
                 code: code,
                 cups: cups,
                 expiry_date: expiryDate
             };
 
-            // 3. ยิงข้อมูลเข้า Supabase 
+            // 4. ยิงข้อมูลเข้า Supabase 
             fetch(`${SUPABASE_URL}/rest/v1/point_codes`, {
                 method: 'POST',
                 headers: {
@@ -538,18 +552,20 @@ function requestPointPrint(cups) {
                 if (!response.ok) throw new Error('Failed to save to Supabase');
                 
                 loadingToast.innerText = `สร้างโค้ดสำเร็จ กำลังปริ้น... 🖨️`;
-                // ส่งข้อมูลไปวาดลง Canvas และปริ้น
-                handlePointPrint(payload, loadingToast); 
+                
+                // ส่งข้อมูลไปวาดลง Canvas และปริ้น (ในฟังก์ชัน handlePointPrint)
+                // สำคัญ: ต้องแน่ใจว่าตัวแปรที่ส่งไปคือ payload ซึ่งมี property expiry_date และ cups ครบถ้วน
+                handlePointPrint({
+                    code: payload.code,
+                    cups: payload.cups,
+                    expiryDate: payload.expiry_date // เปลี่ยนชื่อ Key ให้ตรงกับที่ handlePointPrint เรียกใช้ (อูฐ)
+                }, loadingToast); 
             })
             .catch(error => {
                 loadingToast.remove();
                 showToast(`สร้างโค้ดแต้มล้มเหลว: ${error.message}`, 'error');
             });
         }
-        
-        // หมายเหตุ: ฟังก์ชัน handlePointPrint() ไม่ต้องแก้ไข ใช้ตัวเดิมที่คุณมีได้เลยครับ 
-        // เพราะรับพารามิเตอร์ (data, loadingToast) เหมือนเดิม
-
         async function handlePointPrint(data) {
             try {
                 showBackgroundTask("กำลังปริ้นโค้ดแต้ม...");
