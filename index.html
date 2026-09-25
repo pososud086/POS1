@@ -104,6 +104,37 @@
             animation: spin 1s linear infinite;
         }
 
+        /* ปุ่มกากบาทปิด Modal */
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+        }
+        .close-btn:hover {
+            background: var(--primary);
+            color: white;
+            transform: scale(1.1);
+        }
+        
+        /* ปรับ position ของ modal-content เพื่อให้ยึดปุ่ม close-btn ได้ถูกต้อง */
+        .modal-content {
+            position: relative; /* เพิ่มบรรทัดนี้ หรือถ้ามีอยู่แล้วก็ไม่เป็นไร */
+            /* ... โค้ดเดิมของ .modal-content ... */
+        }
+
         /* Background Loading Toast (ทำงานเบื้องหลัง) */
         .toast-container { position: absolute; top: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
         .toast { background: rgba(30, 30, 30, 0.9); color: white; padding: 15px 25px; border-left: 5px solid var(--secondary); border-radius: 8px; font-size: 1.1em; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.5); animation: slideIn 0.3s ease, fadeOut 0.5s ease 3s forwards; }
@@ -178,9 +209,13 @@
         </div>
     </div>
 
-    <div class="modal" id="payment-modal">
-        <div class="modal-content" style="text-align: center;">
-            <h2 style="font-size: 1.8em;">ชำระเงิน <span id="pay-amount" style="color: var(--secondary);"></span></h2>
+<div class="modal" id="payment-modal">
+        <div class="modal-content" style="text-align: center; position: relative;">
+            
+            <!-- ปุ่มกากบาทปิดหน้าต่างชำระเงิน -->
+            <button class="close-btn" onclick="closePaymentModal()">✖</button>
+
+            <h2 style="font-size: 1.8em; margin-top: 10px;">ชำระเงิน <span id="pay-amount" style="color: var(--secondary);"></span></h2>
             <button class="btn-main" style="margin-bottom: 15px;" onclick="processPayment('เงินสด')">💵 เงินสด</button>
             <button class="btn-secondary" onclick="processPayment('QRCODE')">📱 QR Code (โชว์จอลูกค้า)</button>
             
