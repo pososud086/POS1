@@ -66,15 +66,71 @@
         .btn-gray:hover { background: #777; }
         .btn-delete { background: #dc3545; color: white; border: none; border-radius: 6px; padding: 6px 12px; margin-top: 5px; cursor: pointer; font-weight: bold;}
 
-        /* Modals */
+/* Modals & Addons (อัปเดตระบบยุบขยายและการคลิก) */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 100; }
-        .modal-content { background: var(--surface); padding: 30px; border-radius: 15px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; }
-        .modal h2 { margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 10px; font-size: 1.6em;}
-        .addon-group { margin-bottom: 20px; }
-        .addon-group h3 { font-size: 1.3em; color: var(--secondary); margin-bottom: 10px;}
-        .addon-option { display: flex; justify-content: space-between; padding: 12px; background: #2a2a2a; margin-bottom: 8px; border-radius: 8px; font-size: 1.1em; font-weight: bold; cursor: pointer;}
-        .addon-option label { cursor: pointer; display: flex; align-items: center; width: 100%;}
-        .addon-option input[type="checkbox"] { transform: scale(1.3); margin-right: 12px; cursor: pointer;}
+        .modal-content { background: var(--surface); padding: 30px; border-radius: 15px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; position: relative; }
+        .modal h2 { margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 15px; font-size: 1.6em;}
+        
+        /* สไตล์สำหรับกล่องแอดออนแบบยุบขยายได้ */
+        .addon-group { margin-bottom: 15px; background: #222; border-radius: 10px; overflow: hidden; border: 1px solid #333; }
+        
+        /* หัวข้อที่กดเพื่อยุบ/ขยาย */
+        .addon-group-header {
+            background: #333;
+            padding: 15px 20px;
+            font-size: 1.3em;
+            color: var(--secondary);
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            transition: background 0.3s;
+        }
+        .addon-group-header:hover { background: #444; }
+        
+        /* ลูกศรชี้ลง/ชี้ขวา */
+        .addon-group-header::after {
+            content: '▼';
+            font-size: 0.8em;
+            transition: transform 0.3s ease;
+        }
+        .addon-group.collapsed .addon-group-header::after {
+            transform: rotate(-90deg); /* หมุนลูกศรเมื่อถูกพับ */
+        }
+        
+        /* พื้นที่เนื้อหาตัวเลือก */
+        .addon-group-content {
+            padding: 10px;
+            display: block;
+        }
+        .addon-group.collapsed .addon-group-content {
+            display: none; /* ซ่อนเมื่อถูกพับ */
+        }
+
+        /* เปลี่ยน addon-option เป็น Label เพื่อให้กดตรงไหนก็โดน Checkbox */
+        .addon-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #2a2a2a;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer; /* เปลี่ยนเมาส์เป็นรูปนิ้วมือ */
+            transition: 0.2s;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .addon-option:hover { background: #3a3a3a; }
+        .addon-option input[type="checkbox"] {
+            transform: scale(1.5); /* ขยายขนาด Checkbox */
+            margin-right: 15px;
+            cursor: pointer;
+        }
 
         /* Background Task Notification (มุมขวาบน) */
         .bg-task-notification {
@@ -715,32 +771,46 @@ async function requestPointPrint(cups) {
             }
         }
 
-        function openAddonModal(item) {
+function openAddonModal(item) {
             document.getElementById('addon-modal-title').innerText = item.name;
             const body = document.getElementById('addon-modal-body');
             body.innerHTML = '';
             
-            item.addonId.forEach(aId => {
+            item.addonId.forEach((aId, index) => {
                 const addon = appData.addons[aId];
                 if (addon) {
                     const group = document.createElement('div');
-                    group.className = 'addon-group';
-                    group.innerHTML = `<h3>${addon.name}</h3>`;
+                    // กำหนดให้แอดออนกลุ่มแรก 'เปิด' เสมอ ส่วนกลุ่มอื่นๆ ให้ 'พับไว้' เพื่อประหยัดพื้นที่
+                    // ถ้าต้องการให้เปิดทั้งหมดตั้งแต่แรก ให้แก้เป็น: group.className = 'addon-group';
+                    group.className = 'addon-group' + (index === 0 ? '' : ' collapsed');
+                    
+                    // สร้างแถบส่วนหัวสำหรับกดพับ/ขยาย
+                    const header = document.createElement('div');
+                    header.className = 'addon-group-header';
+                    header.innerText = addon.name;
+                    // เมื่อกดที่หัวข้อ ให้สลับคลาส 'collapsed' เพื่อซ่อน/แสดงเนื้อหา
+                    header.onclick = () => group.classList.toggle('collapsed');
+                    
+                    // สร้างพื้นที่บรรจุตัวเลือก
+                    const content = document.createElement('div');
+                    content.className = 'addon-group-content';
+                    
                     addon.options.forEach(opt => {
-                        const optDiv = document.createElement('div');
-                        optDiv.className = 'addon-option';
-                        optDiv.innerHTML = `
-                            <label><input type="checkbox" value='${JSON.stringify(opt)}' class="addon-chk"> <span>${opt.name}</span></label>
-                            <span>+${opt.price}฿</span>
+                        // ใช้ <label> ครอบเนื้อหาทั้งหมด เพื่อให้ผู้ใช้กดตรงไหนก็ได้ในกรอบ
+                        const optLabel = document.createElement('label');
+                        optLabel.className = 'addon-option';
+                        optLabel.innerHTML = `
+                            <div style="display: flex; align-items: center;">
+                                <input type="checkbox" value='${JSON.stringify(opt)}' class="addon-chk">
+                                <span>${opt.name}</span>
+                            </div>
+                            <span style="color: var(--secondary);">+${opt.price}฿</span>
                         `;
-                        optDiv.onclick = function(e) {
-                            if(e.target.tagName !== 'INPUT') {
-                                const chk = this.querySelector('input');
-                                chk.checked = !chk.checked;
-                            }
-                        };
-                        group.appendChild(optDiv);
+                        content.appendChild(optLabel);
                     });
+                    
+                    group.appendChild(header);
+                    group.appendChild(content);
                     body.appendChild(group);
                 }
             });
