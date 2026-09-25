@@ -908,6 +908,20 @@ async function saveOrderAndFinish() {
         }
 
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        function closePaymentModal() {
+            // ปิดหน้าต่าง Payment
+            document.getElementById('payment-modal').style.display = 'none';
+            
+            // ซ่อนปุ่มปริ้นและล้างค่าวิธีชำระเงิน
+            document.getElementById('print-controls').style.display = 'none';
+            currentPaymentMethod = '';
+            
+            // อัปเดตจอลูกค้า (บังคับซ่อน QR Code ทันที)
+            let state = JSON.parse(localStorage.getItem('pos_state')) || { cart:[], total:0, discount:0 };
+            state.showQR = false;
+            localStorage.setItem('pos_state', JSON.stringify(state));
+        }
     </script>
 </body>
 </html>
