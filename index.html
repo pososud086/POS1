@@ -191,6 +191,37 @@
             /* ... โค้ดเดิมของ .modal-content ... */
         }
 
+/* ปุ่มลัดปริ้นแต้มในหน้า Payment */
+        .payment-point-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin: 15px 0;
+            padding: 10px;
+            background: #2a2a2a;
+            border-radius: 10px;
+            border: 1px solid #444;
+        }
+        .payment-point-btn {
+            background-color: #333;
+            border: 2px solid #27ae60;
+            color: #27ae60;
+            font-size: 1.1em;
+            font-weight: bold;
+            padding: 8px 0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .payment-point-btn:hover { background-color: #27ae60; color: white; }
+        .payment-point-title {
+            grid-column: span 5;
+            text-align: left;
+            font-size: 0.9em;
+            color: var(--secondary);
+            margin-bottom: 5px;
+        }
+        
         /* Background Loading Toast (ทำงานเบื้องหลัง) */
         .toast-container { position: absolute; top: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
         .toast { background: rgba(30, 30, 30, 0.9); color: white; padding: 15px 25px; border-left: 5px solid var(--secondary); border-radius: 8px; font-size: 1.1em; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.5); animation: slideIn 0.3s ease, fadeOut 0.5s ease 3s forwards; }
@@ -268,14 +299,19 @@
 <div class="modal" id="payment-modal">
         <div class="modal-content" style="text-align: center; position: relative;">
             
-            <!-- ปุ่มกากบาทปิดหน้าต่างชำระเงิน -->
             <button class="close-btn" onclick="closePaymentModal()">✖</button>
 
             <h2 style="font-size: 1.8em; margin-top: 10px;">ชำระเงิน <span id="pay-amount" style="color: var(--secondary);"></span></h2>
             <button class="btn-main" style="margin-bottom: 15px;" onclick="processPayment('เงินสด')">💵 เงินสด</button>
             <button class="btn-secondary" onclick="processPayment('QRCODE')">📱 QR Code (โชว์จอลูกค้า)</button>
             
-            <div id="print-controls" style="display: none; margin-top: 20px; border-top: 1px solid #444; padding-top: 20px;">
+            <div id="print-controls" style="display: none; margin-top: 20px; border-top: 1px solid #444; padding-top: 15px;">
+                
+                <!-- แผงปุ่มปริ้นแต้ม (สร้างผ่าน Javascript) -->
+                <div class="payment-point-grid" id="payment-point-grid">
+                    <div class="payment-point-title">ปริ้นโค้ดแต้มด่วน:</div>
+                </div>
+
                 <button class="btn-secondary" onclick="printReceiptBluetooth('customer')" style="margin-bottom:15px;">🖨️ ปริ้นใบเสร็จลูกค้า</button>
                 <button class="btn-main" onclick="printReceiptBluetooth('shop')" style="margin-bottom:15px;">🖨️ ปริ้นใบเสร็จร้านค้า & จบออเดอร์</button>
                 <button class="btn-gray" onclick="saveOrderAndFinish()">✅ จบออเดอร์ (บันทึกอย่างเดียว)</button>
@@ -408,6 +444,9 @@
             }
         }
 
+        // ==========================================
+        // เพิ่มคำสั่งตัดกระดาษ (Full Cut)
+        // ==========================================
         function convertCanvasToESCPOS(ctx, width, height) {
             const imgData = ctx.getImageData(0, 0, width, height).data;
             const xL = (width / 8) % 256;
@@ -429,12 +468,17 @@
                     bytes.push(byte);
                 }
             }
+            
+            // เลื่อนกระดาษ 4 บรรทัด (ให้พ้นใบมีด)
             bytes.push(0x0A, 0x0A, 0x0A, 0x0A); 
+            // สั่งตัดกระดาษแบบ Full Cut (GS V 65 0 -> 0x1D 0x56 0x41 0x00)
+            bytes.push(0x1D, 0x56, 0x41, 0x00); 
+
             return new Uint8Array(bytes);
         }
 
         // ==========================================
-        // 1. ระบบปริ้นใบเสร็จ POS
+        // 1. ระบบปริ้นใบเสร็จ POS (เพิ่มความเร็ว)
         // ==========================================
         function loadImage(url) {
             return new Promise((resolve, reject) => {
@@ -468,47 +512,35 @@
             }
 
             if (type === 'customer') {
-        
-                    drawText('เติมมัทฉะ', 192, 'center', 'bold 35px sans-serif');
-                    y += 45;
-                
+                drawText('เติมมัทฉะ', 192, 'center', 'bold 35px sans-serif');
+                y += 45;
                 drawText('--------------------------------', 192, 'center', 'bold 24px sans-serif');
                 y += 35;
                 drawText(`ออเดอร์ #${currentOrderId}`, 10, 'left', 'bold 32px sans-serif');
                 y += 40;
-                    const now = new Date();
-    const day = now.getDate();
-    const month = now.getMonth() + 1;
-    const year = now.getFullYear() + 543;
-    const hour = String(now.getHours()).padStart(2, '0');
-    const minute = String(now.getMinutes()).padStart(2, '0');
-
-    drawText(
-        `วันที่ ${day}/${month}/${year} เวลา ${hour}:${minute} น.`,
-        192,
-        'center',
-        '24px sans-serif'
-    );
-    y += 35;
+                
+                const now = new Date();
+                const day = now.getDate();
+                const month = now.getMonth() + 1;
+                const year = now.getFullYear() + 543;
+                const hour = String(now.getHours()).padStart(2, '0');
+                const minute = String(now.getMinutes()).padStart(2, '0');
+                drawText(`วันที่ ${day}/${month}/${year} เวลา ${hour}:${minute} น.`, 192, 'center', '24px sans-serif');
+                y += 35;
             } else {
                 drawText(`ออเดอร์ที่ #${currentOrderId}`, 10, 'left', 'bold 32px sans-serif');
                 y += 40;
                 drawText('--------------------------------', 192, 'center', 'bold 24px sans-serif');
                 y += 35;
 
-                                    const now = new Date();
-    const day = now.getDate();
-    const month = now.getMonth() + 1;
-    const year = now.getFullYear() + 543;
-    const hour = String(now.getHours()).padStart(2, '0');
-    const minute = String(now.getMinutes()).padStart(2, '0');
-                    drawText(
-        `วันที่ ${day}/${month}/${year} เวลา ${hour}:${minute} น.`,
-        192,
-        'center',
-        '24px sans-serif'
-    );
-    y += 35;
+                const now = new Date();
+                const day = now.getDate();
+                const month = now.getMonth() + 1;
+                const year = now.getFullYear() + 543;
+                const hour = String(now.getHours()).padStart(2, '0');
+                const minute = String(now.getMinutes()).padStart(2, '0');
+                drawText(`วันที่ ${day}/${month}/${year} เวลา ${hour}:${minute} น.`, 192, 'center', '24px sans-serif');
+                y += 35;
             }
 
             drawText('รายการ', 10, 'left', 'bold 24px sans-serif');
@@ -561,12 +593,15 @@
             } else { y += 40; }
 
             try {
-                if (type === 'shop') saveOrderAndFinish(); // สั่งบันทึกและปิดหน้าจอเคลียร์ข้อมูลทันที
+                if (type === 'shop') saveOrderAndFinish();
 
                 showBackgroundTask("กำลังปริ้นใบเสร็จ...");
                 const escposData = convertCanvasToESCPOS(ctx, 384, y);
-                for (let i = 0; i < escposData.length; i += 100) {
-                    await printCharacteristic.writeValue(escposData.slice(i, i + 100));
+                
+                // === อัปเดตความเร็ว: ขยาย Chunk จาก 100 เป็น 512 ===
+                const CHUNK_SIZE = 512;
+                for (let i = 0; i < escposData.length; i += CHUNK_SIZE) {
+                    await printCharacteristic.writeValue(escposData.slice(i, i + CHUNK_SIZE));
                 }
                 hideBackgroundTask();
             } catch (e) {
@@ -578,13 +613,36 @@
         // 2. ระบบปริ้นโค้ดสะสมแต้ม
         // ==========================================
         function generatePointButtons() {
+            // ปุ่มแผงด้านล่างซ้าย
             const grid = document.getElementById('point-button-grid');
+            if(grid) grid.innerHTML = '';
+            
+            // ปุ่มในหน้าต่าง Payment
+            const paymentGrid = document.getElementById('payment-point-grid');
+            if (paymentGrid) {
+                const titleElement = paymentGrid.querySelector('.payment-point-title');
+                paymentGrid.innerHTML = '';
+                if(titleElement) paymentGrid.appendChild(titleElement);
+            }
+
             for (let i = 1; i <= 10; i++) {
-                let btn = document.createElement('button');
-                btn.className = 'cup-btn';
-                btn.innerText = i + ' แก้ว';
-                btn.onclick = () => requestPointPrint(i);
-                grid.appendChild(btn);
+                // สำหรับล่างซ้าย (ใส่คำว่า "แก้ว")
+                if(grid) {
+                    let btn = document.createElement('button');
+                    btn.className = 'cup-btn';
+                    btn.innerText = i + ' แก้ว';
+                    btn.onclick = () => requestPointPrint(i);
+                    grid.appendChild(btn);
+                }
+
+                // สำหรับ Payment (ใส่แค่ตัวเลขเพื่อประหยัดที่)
+                if(paymentGrid) {
+                    let quickBtn = document.createElement('button');
+                    quickBtn.className = 'payment-point-btn';
+                    quickBtn.innerText = i;
+                    quickBtn.onclick = () => requestPointPrint(i);
+                    paymentGrid.appendChild(quickBtn);
+                }
             }
         }
 
@@ -724,15 +782,16 @@ async function requestPointPrint(cups) {
 
                 const escposData = convertCanvasToESCPOS(ctx, 384, y + 20);
                 
-                for (let i = 0; i < escposData.length; i += 100) {
-                    await printCharacteristic.writeValue(escposData.slice(i, i + 100));
+                // === อัปเดตความเร็ว: ขยาย Chunk จาก 100 เป็น 512 ===
+                const CHUNK_SIZE = 512;
+                for (let i = 0; i < escposData.length; i += CHUNK_SIZE) {
+                    await printCharacteristic.writeValue(escposData.slice(i, i + CHUNK_SIZE));
                 }
                 hideBackgroundTask("ปริ้นสำเร็จ");
             } catch (e) {
                 hideBackgroundTask("ปริ้นล้มเหลว", true);
             } 
         }
-
         // ==========================================
         // 3. UI และ ฟังก์ชัน POS พื้นฐาน
         // ==========================================
