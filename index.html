@@ -444,7 +444,10 @@
             }
         }
 
-        function convertCanvasToESCPOS(ctx, width, height) {
+        // ==========================================
+        // ฟังก์ชันแปลงภาพเป็นคำสั่งปริ้น พร้อมเงื่อนไขตัดกระดาษ
+        // ==========================================
+        function convertCanvasToESCPOS(ctx, width, height, withCut = true) {
             const imgData = ctx.getImageData(0, 0, width, height).data;
             const xL = (width / 8) % 256;
             const xH = Math.floor((width / 8) / 256);
@@ -466,10 +469,13 @@
                 }
             }
             
-            // เลื่อนกระดาษ 4 บรรทัด (ให้พ้นใบมีด)
+            // เลื่อนกระดาษ 4 บรรทัด (ให้พ้นใบมีด หรือให้ฉีกง่ายขึ้น)
             bytes.push(0x0A, 0x0A, 0x0A, 0x0A); 
-            // สั่งตัดกระดาษแบบ Full Cut (GS V 65 0 -> 0x1D 0x56 0x41 0x00)
-            bytes.push(0x1D, 0x56, 0x41, 0x00); 
+            
+            // ถ้า withCut เป็น true ค่อยใส่คำสั่งตัดกระดาษ Full Cut (GS V 65 0 -> 0x1D 0x56 0x41 0x00)
+            if (withCut) {
+                bytes.push(0x1D, 0x56, 0x41, 0x00); 
+            }
 
             return new Uint8Array(bytes);
         }
@@ -593,7 +599,8 @@
                 if (type === 'shop') saveOrderAndFinish();
 
                 showBackgroundTask("กำลังปริ้นใบเสร็จ...");
-                const escposData = convertCanvasToESCPOS(ctx, 384, y);
+                const shouldCut = (type === 'shop'); 
+                const escposData = convertCanvasToESCPOS(ctx, 384, y, shouldCut);
                 
                 // === อัปเดตความเร็ว: ขยาย Chunk จาก 100 เป็น 512 ===
                 const CHUNK_SIZE = 512;
@@ -777,7 +784,7 @@ async function requestPointPrint(cups) {
                 y += 50; 
                 ctx.fillText('------------------------------', 192, y);
 
-                const escposData = convertCanvasToESCPOS(ctx, 384, y + 20);
+                const escposData = convertCanvasToESCPOS(ctx, 384, y + 20, true);
                 
                 // === อัปเดตความเร็ว: ขยาย Chunk จาก 100 เป็น 512 ===
                 const CHUNK_SIZE = 512;
