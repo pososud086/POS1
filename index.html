@@ -523,8 +523,8 @@
                 y += 40;
                 
                 const now = new Date();
-                const day = now.getDate();
-                const month = now.getMonth() + 1;
+                const day = String(now.getDate()).padStart(2, '0');
+                const month = String(now.getMonth() + 1).padStart(2, '0');
                 const year = now.getFullYear() + 543;
                 const hour = String(now.getHours()).padStart(2, '0');
                 const minute = String(now.getMinutes()).padStart(2, '0');
@@ -537,8 +537,8 @@
                 y += 35;
 
                 const now = new Date();
-                const day = now.getDate();
-                const month = now.getMonth() + 1;
+                const day = String(now.getDate()).padStart(2, '0');
+                const month = String(now.getMonth() + 1).padStart(2, '0');
                 const year = now.getFullYear() + 543;
                 const hour = String(now.getHours()).padStart(2, '0');
                 const minute = String(now.getMinutes()).padStart(2, '0');
@@ -549,6 +549,49 @@
             drawText('รายการ', 10, 'left', 'bold 24px sans-serif');
             drawText('ราคา', 374, 'right', 'bold 24px sans-serif'); 
             y += 40;
+
+            // ==========================================
+            // ฟังก์ชันช่วยจัดการตัดข้อความขึ้นบรรทัดใหม่
+            // ==========================================
+            function drawItemLine(nameText, priceText, nameX, priceX, yPos, maxWidth, font, isAddon = false) {
+                ctx.font = font;
+                
+                // พิมพ์ราคาชิดขวาที่บรรทัดแรกสุดเสมอ (ถ้ามีส่งราคามา)
+                if (priceText) {
+                    ctx.textAlign = 'right';
+                    ctx.fillText(priceText, priceX, yPos);
+                }
+                
+                ctx.textAlign = 'left';
+                let line = '';
+                let chars = [];
+                
+                // ใช้ Intl.Segmenter ป้องกันการตัดสระลอย หรือวรรณยุกต์ไทยขาดจากกัน
+                if (typeof Intl.Segmenter !== 'undefined') {
+                    const segmenter = new Intl.Segmenter('th-TH', { granularity: 'grapheme' });
+                    chars = [...segmenter.segment(nameText)].map(s => s.segment);
+                } else {
+                    chars = nameText.split('');
+                }
+
+                // วนลูปเช็คความกว้างทีละตัวอักษร ถ้ายาวเกิน maxWidth ให้ขึ้นบรรทัดใหม่
+                for (let i = 0; i < chars.length; i++) {
+                    let testLine = line + chars[i];
+                    let metrics = ctx.measureText(testLine);
+                    
+                    if (metrics.width > maxWidth && i > 0) {
+                        ctx.fillText(line, nameX, yPos);
+                        line = chars[i];
+                        yPos += (isAddon ? 32 : 35); // ปรับระยะบรรทัดใหม่
+                    } else {
+                        line = testLine;
+                    }
+                }
+                ctx.fillText(line, nameX, yPos);
+                return yPos + (isAddon ? 32 : 35); // รีเทิร์นค่าตำแหน่ง Y ถัดไป
+            }
+
+            // ==========================================
 
             let total = 0, discount = 0;
             let printCart = {};
@@ -569,12 +612,15 @@
 
             for(let key in printCart) {
                 const item = printCart[key];
-                drawText(`x${item.qty} ${item.name}` + (item.isFree ? ' (ฟรี)' : ''), 10, 'left', 'bold 26px sans-serif');
-                drawText(`${item.price * item.qty}฿`, 374, 'right', 'bold 26px sans-serif');
-                y += 35;
+                const itemNameStr = `x${item.qty} ${item.name}` + (item.isFree ? ' (ฟรี)' : '');
+                const priceStr = `${item.price * item.qty}฿`;
+
+                // พิมพ์ชื่อเมนูและราคา (ตั้งความกว้างชื่อเมนูไว้ที่ 260px เพื่อเว้นที่ให้ราคาด้านขวา)
+                y = drawItemLine(itemNameStr, priceStr, 10, 374, y, 260, 'bold 26px sans-serif', false);
+
+                // พิมพ์แอดออน (ตั้งกว้างสุดที่ 320px เพราะไม่มีราคาอยู่บรรทัดเดียวกัน)
                 item.addons.forEach(addon => {
-                    drawText(`+ ${addon}`, 35, 'left', '24px sans-serif');
-                    y += 35;
+                    y = drawItemLine(`+ ${addon}`, "", 35, 374, y, 320, '24px sans-serif', true);
                 });
             }
 
@@ -602,7 +648,6 @@
                 const shouldCut = (type === 'shop'); 
                 const escposData = convertCanvasToESCPOS(ctx, 384, y, shouldCut);
                 
-                // === อัปเดตความเร็ว: ขยาย Chunk จาก 100 เป็น 512 ===
                 const CHUNK_SIZE = 512;
                 for (let i = 0; i < escposData.length; i += CHUNK_SIZE) {
                     await printCharacteristic.writeValue(escposData.slice(i, i + CHUNK_SIZE));
