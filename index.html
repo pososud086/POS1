@@ -29,12 +29,48 @@
         @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; display: none; } }
 
         /* Menu Area */
+/* Menu Area (อัปเดตระบบยุบขยาย) */
         .menu-list-container { overflow-y: auto; flex-grow: 1; padding-right: 10px; margin-bottom: 20px;}
         .menu-list-container::-webkit-scrollbar { width: 8px; }
         .menu-list-container::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
 
-        .category-section { margin-bottom: 30px; }
-        .category-title { font-size: 1.5em; font-weight: bold; color: var(--secondary); margin-bottom: 15px; border-bottom: 2px solid #333; padding-bottom: 5px; }
+        .category-section { margin-bottom: 15px; background: #1a1a1a; border-radius: 12px; overflow: hidden; border: 1px solid #333; }
+        
+        /* หัวข้อหมวดหมู่ที่คลิกเพื่อยุบขยายได้ */
+        .category-title { 
+            font-size: 1.5em; 
+            font-weight: bold; 
+            color: var(--secondary); 
+            padding: 15px 20px; 
+            background: #222; 
+            cursor: pointer; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            user-select: none; 
+            transition: background 0.3s;
+        }
+        .category-title:hover { background: #2a2a2a; }
+        
+        /* ลูกศรชี้ลง/ขวา สำหรับหมวดหมู่เมนู */
+        .category-title::after { 
+            content: '▼'; 
+            font-size: 0.7em; 
+            transition: transform 0.3s ease; 
+            color: #888;
+        }
+        .category-section.collapsed .category-title::after { 
+            transform: rotate(-90deg); 
+        }
+
+        /* กล่องหุ้มตารางเมนู */
+        .category-content {
+            padding: 20px;
+            display: block;
+        }
+        .category-section.collapsed .category-content {
+            display: none;
+        }
 
         .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; }
         .menu-item { background: #2a2a2a; padding: 20px; border-radius: 12px; text-align: center; cursor: pointer; transition: 0.3s; border: 2px solid transparent; }
@@ -104,55 +140,6 @@
         .held-order-item { background: #2a2a2a; padding: 15px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #f39c12; }
         .held-order-info { flex: 1; text-align: left; }
         .held-order-actions { display: flex; gap: 5px; }
-
-        /* Menu Area (อัปเดตระบบยุบขยาย) */
-        .menu-list-container { overflow-y: auto; flex-grow: 1; padding-right: 10px; margin-bottom: 20px;}
-        .menu-list-container::-webkit-scrollbar { width: 8px; }
-        .menu-list-container::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
-
-        .category-section { margin-bottom: 15px; background: #1a1a1a; border-radius: 12px; overflow: hidden; border: 1px solid #333; }
-        
-        /* หัวข้อหมวดหมู่ที่คลิกเพื่อยุบขยายได้ */
-        .category-title { 
-            font-size: 1.5em; 
-            font-weight: bold; 
-            color: var(--secondary); 
-            padding: 15px 20px; 
-            background: #222; 
-            cursor: pointer; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            user-select: none; 
-            transition: background 0.3s;
-        }
-        .category-title:hover { background: #2a2a2a; }
-        
-        /* ลูกศรชี้ลง/ขวา สำหรับหมวดหมู่เมนู */
-        .category-title::after { 
-            content: '▼'; 
-            font-size: 0.7em; 
-            transition: transform 0.3s ease; 
-            color: #888;
-        }
-        .category-section.collapsed .category-title::after { 
-            transform: rotate(-90deg); 
-        }
-
-        /* กล่องหุ้มตารางเมนู */
-        .category-content {
-            padding: 20px;
-            display: block;
-        }
-        .category-section.collapsed .category-content {
-            display: none;
-        }
-
-        .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; }
-        .menu-item { background: #2a2a2a; padding: 20px; border-radius: 12px; text-align: center; cursor: pointer; transition: 0.3s; border: 2px solid transparent; }
-        .menu-item:hover { border-color: var(--secondary); transform: translateY(-3px); }
-        .menu-name { font-size: 1.2em; font-weight: bold; margin-bottom: 10px;}
-        .menu-price { color: var(--secondary); font-size: 1.1em; font-weight: bold; }
 
     </style>
 </head>
