@@ -338,31 +338,77 @@
         // ==========================================
         // ระบบ BLUETOOTH PRINTER
         // ==========================================
+        // ตัวแปร Bluetooth (แชร์ร่วมกัน)
+        let printDevice = null; // เพิ่มบรรทัดนี้เข้ามา
+        let printCharacteristic = null;
+
+        // ==========================================
+        // ระบบ BLUETOOTH PRINTER (พร้อมระบบ Auto-Reconnect)
+        // ==========================================
         async function connectBluetooth() {
             try {
-                const device = await navigator.bluetooth.requestDevice({
+                printDevice = await navigator.bluetooth.requestDevice({
                     acceptAllDevices: true,
                     optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2', '49535343-fe7d-4ae5-8fa9-9fafd205e455']
                 });
-                const server = await device.gatt.connect();
-                const services = await server.getPrimaryServices();
-                for (const service of services) {
-                    const characteristics = await service.getCharacteristics();
-                    for (const char of characteristics) {
-                        if (char.properties.write || char.properties.writeWithoutResponse) {
-                            printCharacteristic = char;
-                            const btn = document.getElementById('btn-bt-connect');
-                            btn.innerText = '✅ เชื่อมต่อแล้ว (' + device.name + ')';
-                            btn.style.background = '#28a745';
-                            return;
-                        }
-                    }
-                }
-                alert('ไม่พบช่องทางการพิมพ์บนอุปกรณ์นี้');
+                
+                // ดักจับ Event เมื่อเครื่องปริ้นพักหน้าจอ/ตัดการเชื่อมต่อ
+                printDevice.addEventListener('gattserverdisconnected', onDisconnected);
+
+                await connectToPrinter();
             } catch (error) {
                 console.error(error);
                 alert('การเชื่อมต่อล้มเหลว: ' + error.message);
             }
+        }
+
+        async function connectToPrinter() {
+            const server = await printDevice.gatt.connect();
+            const services = await server.getPrimaryServices();
+            
+            for (const service of services) {
+                const characteristics = await service.getCharacteristics();
+                for (const char of characteristics) {
+                    if (char.properties.write || char.properties.writeWithoutResponse) {
+                        printCharacteristic = char;
+                        const btn = document.getElementById('btn-bt-connect');
+                        btn.innerText = '✅ เชื่อมต่อแล้ว (' + printDevice.name + ')';
+                        btn.style.background = '#28a745';
+                        return;
+                    }
+                }
+            }
+            throw new Error('ไม่พบช่องทางการพิมพ์บนอุปกรณ์นี้');
+        }
+
+        function onDisconnected() {
+            console.warn('Bluetooth เข้าสู่โหมดสลีป (หลุดการเชื่อมต่อ)');
+            const btn = document.getElementById('btn-bt-connect');
+            btn.innerText = '⚠️ พักการเชื่อมต่อ';
+            btn.style.background = '#f39c12';
+        }
+
+        // ฟังก์ชันพระเอก: ช่วยเช็คว่าหลุดไหม ถ้าหลุดให้ต่อใหม่ทันทีก่อนปริ้น
+        async function checkAndReconnectBluetooth() {
+            if (!printDevice) {
+                alert('กรุณากดปุ่ม 🔵 เชื่อมต่อเครื่องปริ้น ที่มุมขวาบนก่อนครับ');
+                return false;
+            }
+            if (!printDevice.gatt.connected) {
+                console.log('กำลังเชื่อมต่อเครื่องปริ้นใหม่...');
+                const btn = document.getElementById('btn-bt-connect');
+                btn.innerText = '⏳ กำลังปลุกเครื่องปริ้น...';
+                btn.style.background = '#007BFF';
+                try {
+                    await connectToPrinter();
+                } catch (e) {
+                    alert('เครื่องปริ้นหลุดการเชื่อมต่อ และไม่สามารถปลุกอัตโนมัติได้ กรุณากดเชื่อมต่อใหม่ที่ปุ่มมุมขวาบนครับ');
+                    btn.innerText = '🔴 ขาดการเชื่อมต่อ';
+                    btn.style.background = '#dc3545';
+                    return false;
+                }
+            }
+            return true;
         }
 
         function convertCanvasToESCPOS(ctx, width, height, withCut = true) {
@@ -402,10 +448,9 @@
         }
 
         async function printReceiptBluetooth(type) {
-            if (!printCharacteristic) {
-                alert('กรุณากดปุ่ม 🔵 เชื่อมต่อเครื่องปริ้น ที่มุมขวาบนก่อนครับ');
-                return;
-            }
+            // เรียกใช้ฟังก์ชันเช็คการเชื่อมต่อและปลุกเครื่องปริ้นอัตโนมัติ
+            const isConnected = await checkAndReconnectBluetooth();
+            if (!isConnected) return; // ถ้าต่อไม่ติดให้หยุดทำงาน
 
             const canvas = document.getElementById('receiptCanvas');
             canvas.height = 2000; 
@@ -581,10 +626,9 @@
         }
 
         async function requestPointPrint(cups) {
-            if (!printCharacteristic) {
-                alert("กรุณาเชื่อมต่อเครื่องปริ้นที่ปุ่มสีน้ำเงินด้านบนก่อนครับ!");
-                return;
-            }
+            // เรียกใช้ฟังก์ชันเช็คการเชื่อมต่อและปลุกเครื่องปริ้นอัตโนมัติ
+            const isConnected = await checkAndReconnectBluetooth();
+            if (!isConnected) return; // ถ้าต่อไม่ติดให้หยุดทำงาน
             const loadingToast = showToast(`กำลังตรวจสอบและสร้างโค้ด ${cups} แก้ว... 🍵`);
             
             function generateRandomString(length) {
