@@ -6,9 +6,10 @@
     <title>POS System - พนักงาน</title>
     <!-- นำเข้าไลบรารีสำหรับสร้าง QR Code -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --bg: #121212; --surface: #1e1e1e; --primary: #E63946; --secondary: #F4A261; --text: #f1faee; }
-        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; position: relative; }
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
         
         /* Layout */
         .left-panel { flex: 7; display: flex; flex-direction: column; padding: 20px; border-right: 1px solid #333; height: 100vh; box-sizing: border-box;}
@@ -20,26 +21,31 @@
         .btn-print-setup { background: #007BFF; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 1.1em; font-weight: bold; transition: 0.3s; }
         .btn-print-setup:hover { background: #0056b3; }
         
-        /* Background Loading Toast */
-        .toast-container { position: absolute; top: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
-        .toast { background: rgba(30, 30, 30, 0.9); color: white; padding: 15px 25px; border-left: 5px solid var(--secondary); border-radius: 8px; font-size: 1.1em; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.5); animation: slideIn 0.3s ease, fadeOut 0.5s ease 3s forwards; }
-        .toast.success { border-color: #28a745; }
-        .toast.error { border-color: #dc3545; animation: slideIn 0.3s ease; }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; display: none; } }
-
-        /* Menu Area (ยุบขยายหมวดหมู่) */
+        /* Menu Area */
         .menu-list-container { overflow-y: auto; flex-grow: 1; padding-right: 10px; margin-bottom: 20px;}
         .menu-list-container::-webkit-scrollbar { width: 8px; }
         .menu-list-container::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
 
-        .category-section { margin-bottom: 15px; background: #1a1a1a; border-radius: 12px; overflow: hidden; border: 1px solid #333; }
-        .category-title { font-size: 1.5em; font-weight: bold; color: var(--secondary); padding: 15px 20px; background: #222; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; transition: background 0.3s; }
-        .category-title:hover { background: #2a2a2a; }
-        .category-title::after { content: '▼'; font-size: 0.7em; transition: transform 0.3s ease; color: #888; }
-        .category-section.collapsed .category-title::after { transform: rotate(-90deg); }
-        .category-content { padding: 20px; display: block; }
-        .category-section.collapsed .category-content { display: none; }
+        .category-title {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            transition: color 0.3s;
+        }
+        .category-title:hover { color: var(--text); }
+        .category-title::after {
+            content: '▼';
+            font-size: 0.7em;
+            transition: transform 0.3s ease;
+        }
+        .category-section.collapsed .category-title::after {
+            transform: rotate(-90deg); /* หมุนลูกศรเมื่อพับ */
+        }
+        .category-section.collapsed .menu-grid {
+            display: none; /* ซ่อนรายการเมนูเมื่อพับ */
+        }
 
         .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; }
         .menu-item { background: #2a2a2a; padding: 20px; border-radius: 12px; text-align: center; cursor: pointer; transition: 0.3s; border: 2px solid transparent; }
@@ -58,6 +64,7 @@
         .cup-btn:active { transform: scale(0.95); }
 
         /* Cart Area */
+        .right-panel h2 { font-size: 1.6em; font-weight: bold; margin-top: 0;}
         .cart-list { flex: 1; overflow-y: auto; margin-bottom: 20px; padding-right: 5px;}
         .cart-list::-webkit-scrollbar { width: 6px; }
         .cart-list::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
@@ -72,58 +79,213 @@
         
         .btn-main { background: var(--primary); color: white; border: none; padding: 18px; border-radius: 8px; font-size: 1.3em; font-weight: bold; cursor: pointer; width: 100%; transition: 0.3s; }
         .btn-main:hover { background: #d62828; }
-        .btn-secondary { background: var(--secondary); color: #121212; border: none; padding: 18px; border-radius: 8px; font-size: 1.3em; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; transition: 0.3s; }
-        .btn-warning { background: #f39c12; color: white; border: none; padding: 18px; border-radius: 8px; font-size: 1.3em; font-weight: bold; cursor: pointer; width: 100%; transition: 0.3s; }
-        .btn-warning:hover { background: #e67e22; }
+        .btn-secondary { background: var(--secondary); color: #121212; border: none; padding: 18px; border-radius: 8px; font-size: 1.3em; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; }
         .btn-gray { background: #555; color: white; border: none; padding: 18px; border-radius: 8px; font-size: 1.3em; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; transition: 0.3s; }
         .btn-gray:hover { background: #777; }
         .btn-delete { background: #dc3545; color: white; border: none; border-radius: 6px; padding: 6px 12px; margin-top: 5px; cursor: pointer; font-weight: bold;}
 
-        /* Modals & Addons */
+        * 2. CSS สำหรับปุ่มพักบิล และ Modal จัดการบิล */
+        /* ========================================= */
+        .cart-actions-row { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 15px; }
+        .btn-hold { background: #f39c12; color: white; border: none; padding: 12px; border-radius: 8px; font-size: 1.1em; font-weight: bold; cursor: pointer; flex: 1; transition: 0.3s; }
+        .btn-hold:hover { background: #d68910; }
+        .btn-retrieve { background: #17a2b8; color: white; border: none; padding: 12px; border-radius: 8px; font-size: 1.1em; font-weight: bold; cursor: pointer; flex: 1; transition: 0.3s; position: relative;}
+        .btn-retrieve:hover { background: #138496; }
+        
+        .held-badge { background: #E63946; color: white; border-radius: 50%; padding: 2px 8px; font-size: 0.8em; position: absolute; top: -5px; right: -5px; border: 2px solid var(--surface);}
+
+        .held-order-item { background: #2a2a2a; padding: 15px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #444;}
+        .held-order-info-title { font-weight: bold; font-size: 1.2em; color: var(--secondary); margin-bottom: 5px;}
+        .held-order-info-detail { font-size: 0.9em; color: #bbb; }
+
+/* Modals & Addons (อัปเดตระบบยุบขยายและการคลิก) */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 100; }
         .modal-content { background: var(--surface); padding: 30px; border-radius: 15px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; position: relative; }
         .modal h2 { margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 15px; font-size: 1.6em;}
         
-        .close-btn { position: absolute; top: 15px; right: 20px; background: rgba(255, 255, 255, 0.1); color: var(--text); border: none; width: 35px; height: 35px; border-radius: 50%; font-size: 1.2em; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
-        .close-btn:hover { background: var(--primary); color: white; transform: scale(1.1); }
-
+        /* สไตล์สำหรับกล่องแอดออนแบบยุบขยายได้ */
         .addon-group { margin-bottom: 15px; background: #222; border-radius: 10px; overflow: hidden; border: 1px solid #333; }
-        .addon-group-header { background: #333; padding: 15px 20px; font-size: 1.3em; color: var(--secondary); font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; transition: background 0.3s; }
-        .addon-group-header:hover { background: #444; }
-        .addon-group-header::after { content: '▼'; font-size: 0.8em; transition: transform 0.3s ease; }
-        .addon-group.collapsed .addon-group-header::after { transform: rotate(-90deg); }
-        .addon-group-content { padding: 10px; display: block; }
-        .addon-group.collapsed .addon-group-content { display: none; }
         
-        .addon-option { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #2a2a2a; margin-bottom: 8px; border-radius: 8px; font-size: 1.2em; font-weight: bold; cursor: pointer; transition: 0.2s; width: 100%; box-sizing: border-box; }
+        /* หัวข้อที่กดเพื่อยุบ/ขยาย */
+        .addon-group-header {
+            background: #333;
+            padding: 15px 20px;
+            font-size: 1.3em;
+            color: var(--secondary);
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            transition: background 0.3s;
+        }
+        .addon-group-header:hover { background: #444; }
+        
+        /* ลูกศรชี้ลง/ชี้ขวา */
+        .addon-group-header::after {
+            content: '▼';
+            font-size: 0.8em;
+            transition: transform 0.3s ease;
+        }
+        .addon-group.collapsed .addon-group-header::after {
+            transform: rotate(-90deg); /* หมุนลูกศรเมื่อถูกพับ */
+        }
+        
+        /* พื้นที่เนื้อหาตัวเลือก */
+        .addon-group-content {
+            padding: 10px;
+            display: block;
+        }
+        .addon-group.collapsed .addon-group-content {
+            display: none; /* ซ่อนเมื่อถูกพับ */
+        }
+
+        /* เปลี่ยน addon-option เป็น Label เพื่อให้กดตรงไหนก็โดน Checkbox */
+        .addon-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #2a2a2a;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer; /* เปลี่ยนเมาส์เป็นรูปนิ้วมือ */
+            transition: 0.2s;
+            width: 100%;
+            box-sizing: border-box;
+        }
         .addon-option:hover { background: #3a3a3a; }
-        .addon-option input[type="checkbox"] { transform: scale(1.5); margin-right: 15px; cursor: pointer; }
+        .addon-option input[type="checkbox"] {
+            transform: scale(1.5); /* ขยายขนาด Checkbox */
+            margin-right: 15px;
+            cursor: pointer;
+        }
 
-        /* ปุ่มลัดปริ้นแต้มในหน้า Payment */
-        .payment-point-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 15px 0; padding: 10px; background: #2a2a2a; border-radius: 10px; border: 1px solid #444; }
-        .payment-point-btn { background-color: #333; border: 2px solid #27ae60; color: #27ae60; font-size: 1.1em; font-weight: bold; padding: 8px 0; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+        /* Background Task Notification (มุมขวาบน) */
+        .bg-task-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(40, 167, 69, 0.9);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            display: none;
+            z-index: 9999;
+            align-items: center;
+            gap: 15px;
+            animation: slideInRight 0.3s ease-out;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 4px solid white;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        /* ปุ่มกากบาทปิด Modal */
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+        }
+        .close-btn:hover {
+            background: var(--primary);
+            color: white;
+            transform: scale(1.1);
+        }
+        
+        /* ปรับ position ของ modal-content เพื่อให้ยึดปุ่ม close-btn ได้ถูกต้อง */
+        .modal-content {
+            position: relative; /* เพิ่มบรรทัดนี้ หรือถ้ามีอยู่แล้วก็ไม่เป็นไร */
+            /* ... โค้ดเดิมของ .modal-content ... */
+        }
+
+/* ปุ่มลัดปริ้นแต้มในหน้า Payment */
+        .payment-point-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin: 15px 0;
+            padding: 10px;
+            background: #2a2a2a;
+            border-radius: 10px;
+            border: 1px solid #444;
+        }
+        .payment-point-btn {
+            background-color: #333;
+            border: 2px solid #27ae60;
+            color: #27ae60;
+            font-size: 1.1em;
+            font-weight: bold;
+            padding: 8px 0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
         .payment-point-btn:hover { background-color: #27ae60; color: white; }
-        .payment-point-title { grid-column: span 5; text-align: left; font-size: 0.9em; color: var(--secondary); margin-bottom: 5px; }
+        .payment-point-title {
+            grid-column: span 5;
+            text-align: left;
+            font-size: 0.9em;
+            color: var(--secondary);
+            margin-bottom: 5px;
+        }
+        
+        /* Background Loading Toast (ทำงานเบื้องหลัง) */
+        .toast-container { position: absolute; top: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background: rgba(30, 30, 30, 0.9); color: white; padding: 15px 25px; border-left: 5px solid var(--secondary); border-radius: 8px; font-size: 1.1em; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.5); animation: slideIn 0.3s ease, fadeOut 0.5s ease 3s forwards; }
+        .toast.success { border-color: #28a745; }
+        .toast.error { border-color: #dc3545; animation: slideIn 0.3s ease; /* Error ไม่ปิดเอง */ }
+        
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; display: none; } }
 
-        /* บิลที่พักไว้ (Held Orders) */
-        .held-order-item { background: #2a2a2a; padding: 15px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #f39c12; }
-        .held-order-info { flex: 1; text-align: left; }
-        .held-order-actions { display: flex; gap: 5px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOutRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
     </style>
 </head>
 <body>
 
+    <!-- การแจ้งเตือนมุมขวาบน (ทำงานอยู่เบื้องหลัง) -->
+    <div id="bg-task" class="bg-task-notification">
+        <div class="spinner" id="bg-task-spinner"></div>
+        <span id="bg-task-text">กำลังบันทึกข้อมูล...</span>
+    </div>
+
     <div class="toast-container" id="toast-container"></div>
 
+    <!-- Main UI (พนักงาน) -->
     <div class="left-panel">
         <div class="header">
             <h2>POS System</h2>
             <button class="btn-print-setup" id="btn-bt-connect" onclick="connectBluetooth()">🔵 เชื่อมต่อเครื่องปริ้น</button>
         </div>
         
-        <div class="menu-list-container" id="menu-list-container">
-            <h3 style="text-align: center; color: #888;">กำลังโหลดข้อมูล...</h3>
-        </div>
+        <div class="menu-list-container" id="menu-list-container">กำลังโหลดข้อมูล...</div>
 
         <div class="point-system-container">
             <div class="point-system-title">
@@ -134,22 +296,21 @@
     </div>
 
     <div class="right-panel">
-        <!-- ส่วนหัวของตระกร้า -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h2 style="margin: 0;">รายการที่เลือก</h2>
-            <button class="btn-secondary" style="margin: 0; padding: 8px 12px; font-size: 1em; width: auto;" onclick="openHeldOrdersModal()">📋 บิลที่พัก <span id="held-count">(0)</span></button>
+        <h2>รายการที่เลือก</h2>
+        <!-- เพิ่มปุ่มพักบิลและดึงบิลตรงนี้ -->
+        <div class="cart-actions-row">
+            <button class="btn-hold" onclick="holdCurrentOrder()">⏸️ พักบิล</button>
+            <button class="btn-retrieve" onclick="openHeldOrdersModal()">
+                📂 บิลที่พักไว้ <span class="held-badge" id="held-count">0</span>
+            </button>
         </div>
-
+        <!-- ====================== -->
         <div class="cart-list" id="cart-list"></div>
         
         <div class="cart-total-section">
             <div class="summary-line"><span>ส่วนลด</span><span id="discount-display">0฿</span></div>
             <div class="summary-line" style="font-weight: bold; color: var(--secondary); font-size: 1.5em;"><span>รวมทั้งหมด</span><span id="total-display">0฿</span></div>
-            
-            <div style="display: flex; gap: 10px;">
-                <button class="btn-warning" onclick="holdOrder()" style="flex: 1;">⏸️ พักบิล</button>
-                <button class="btn-main" onclick="openFreeCupModal()" style="flex: 2;">ถัดไป ➔</button>
-            </div>
+            <button class="btn-main" onclick="openFreeCupModal()">ถัดไป</button>
         </div>
     </div>
 
@@ -176,26 +337,22 @@
         </div>
     </div>
 
-    <div class="modal" id="held-orders-modal">
-        <div class="modal-content" style="position: relative;">
-            <button class="close-btn" onclick="closeModal('held-orders-modal')">✖</button>
-            <h2>📋 บิลที่พักไว้</h2>
-            <div id="held-orders-list" style="margin-top: 15px;"></div>
-        </div>
-    </div>
-
-    <div class="modal" id="payment-modal">
+<div class="modal" id="payment-modal">
         <div class="modal-content" style="text-align: center; position: relative;">
+            
             <button class="close-btn" onclick="closePaymentModal()">✖</button>
+
             <h2 style="font-size: 1.8em; margin-top: 10px;">ชำระเงิน <span id="pay-amount" style="color: var(--secondary);"></span></h2>
             <button class="btn-main" style="margin-bottom: 15px;" onclick="processPayment('เงินสด')">💵 เงินสด</button>
             <button class="btn-secondary" onclick="processPayment('QRCODE')">📱 QR Code (โชว์จอลูกค้า)</button>
             
             <div id="print-controls" style="display: none; margin-top: 20px; border-top: 1px solid #444; padding-top: 15px;">
-                <!-- แผงปุ่มปริ้นแต้มด่วน -->
+                
+                <!-- แผงปุ่มปริ้นแต้ม (สร้างผ่าน Javascript) -->
                 <div class="payment-point-grid" id="payment-point-grid">
                     <div class="payment-point-title">ปริ้นโค้ดแต้มด่วน:</div>
                 </div>
+
                 <button class="btn-secondary" onclick="printReceiptBluetooth('customer')" style="margin-bottom:15px;">🖨️ ปริ้นใบเสร็จลูกค้า</button>
                 <button class="btn-main" onclick="printReceiptBluetooth('shop')" style="margin-bottom:15px;">🖨️ ปริ้นใบเสร็จร้านค้า & จบออเดอร์</button>
                 <button class="btn-gray" onclick="saveOrderAndFinish()">✅ จบออเดอร์ (บันทึกอย่างเดียว)</button>
@@ -203,126 +360,143 @@
         </div>
     </div>
 
-    <!-- Canvas กลาง -->
+    <!-- Modal บิลที่พักไว้ -->
+    <div class="modal" id="held-orders-modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeModal('held-orders-modal')">✖</button>
+            <h2 style="margin-bottom: 20px;">📂 รายการบิลที่พักไว้</h2>
+            <div id="held-orders-list" style="max-height: 60vh; overflow-y: auto; padding-right: 5px;"></div>
+        </div>
+    </div>
+
     <canvas id="receiptCanvas" width="384" style="display:none;"></canvas>
 
     <script>
         // ==========================================
-        // URL สำหรับ API ต่างๆ (⚠️ แก้ไข URL ตรงนี้ ⚠️)
+        // URL สำหรับ API ต่างๆ
         // ==========================================
         const POS_API_URL = 'https://script.google.com/macros/s/AKfycbyTsblHupSi2rU2Ue4kXRRpaH-_EfncjOM2bLt41B3fKOnJOCjnyeinaGoSMo5h9VSsXQ/exec';
+        // ==========================================
+        
+        // --- เพิ่ม 2 บรรทัดนี้ ---
         const SUPABASE_URL = 'https://lcdukrjagsxqthkrfpqz.supabase.co'; 
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxjZHVrcmphZ3N4cXRoa3JmcHF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk2NTY2MDYsImV4cCI6MjEwNTIzMjYwNn0.PVgZhElg7aw3Z2Zb9f2auGcXZ6xtGRIALewIAyZ-IZg';
-
+        
         let appData = { menus: [], addons: {}, lastOrderId: 0 };
         let cart = [];
         let tempItem = null;
         let currentOrderId = 1;
         let currentPaymentMethod = '';
-        let printDevice = null;
         let printCharacteristic = null;
-        let heldOrders = JSON.parse(localStorage.getItem('heldOrders')) || [];
 
-        // ฟังก์ชันเริ่มการทำงานของหน้าเว็บ
+        // ระบบคิวงานเบื้องหลัง
+        let activeTasks = 0;
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return { remove: () => {}, innerText: '' }; // กันพังถ้าลืมใส่ HTML
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerText = message;
+            
+            // ถ้าเป็น error ให้มีปุ่มกากบาทปิด
+            if(type === 'error') {
+                toast.innerHTML += ' <span style="cursor:pointer; float:right; margin-left: 10px;" onclick="this.parentElement.remove()">✖</span>';
+                toast.style.animation = 'slideIn 0.3s ease'; // ปิด fadeOut ทิ้ง เพื่อให้ Error โชว์ค้าง
+            } else {
+                // ถ้าเป็น info หรือ success จะลบตัวเองทิ้งใน 3.5 วินาที
+                setTimeout(() => { if(toast.parentElement) toast.remove(); }, 3500);
+            }
+            
+            container.appendChild(toast);
+            return toast; // คืนค่าตัวมันเอง เพื่อให้ฟังก์ชันอื่นแก้ไขข้อความ (เช่น กำลังดึง -> สำเร็จ)
+        }
+
         window.onload = async () => {
+            generatePointButtons();
             try {
-                // ต้องสร้างปุ่มแต้มก่อน แล้วค่อยอัปเดตเลขบิลพัก
-                generatePointButtons();
-                if(document.getElementById('held-count')) {
-                    updateHeldOrdersCount(); 
-                }
-
-                // โหลดข้อมูลเมนู
                 const res = await fetch(`${POS_API_URL}?action=getInitData`);
                 appData = await res.json();
                 currentOrderId = appData.lastOrderId + 1;
                 renderAllMenus();
                 updateCustomerDisplay();
             } catch (err) {
-                console.error(err);
-                document.getElementById('menu-list-container').innerHTML = `<h3 style="color:#E63946; text-align:center;">เกิดข้อผิดพลาดในการโหลดข้อมูลเมนู<br><br><span style="font-size:0.7em">${err.message}</span></h3>`;
+                document.getElementById('menu-list-container').innerHTML = '<h2 style="color:red; text-align:center;">เกิดข้อผิดพลาดในการโหลดข้อมูลเมนู</h2>';
             }
         };
 
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toast-container');
-            if (!container) return { remove: () => {}, innerText: '' };
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.innerText = message;
-            if(type === 'error') {
-                toast.innerHTML += ' <span style="cursor:pointer; float:right; margin-left: 10px;" onclick="this.parentElement.remove()">✖</span>';
-                toast.style.animation = 'slideIn 0.3s ease';
-            } else {
-                setTimeout(() => { if(toast.parentElement) toast.remove(); }, 3500);
+        // ==========================================
+        // ระบบแจ้งเตือนเบื้องหลัง (Background Task UI)
+        // ==========================================
+        function showBackgroundTask(text) {
+            activeTasks++;
+            const notif = document.getElementById('bg-task');
+            document.getElementById('bg-task-text').innerText = text;
+            document.getElementById('bg-task-spinner').style.display = 'block';
+            notif.style.background = 'rgba(40, 167, 69, 0.9)'; // สีเขียวปกติ
+            notif.style.display = 'flex';
+        }
+
+        function hideBackgroundTask(successMsg = null, isError = false) {
+            activeTasks--;
+            if (activeTasks < 0) activeTasks = 0;
+            
+            const notif = document.getElementById('bg-task');
+            if (successMsg) {
+                document.getElementById('bg-task-text').innerText = successMsg;
+                document.getElementById('bg-task-spinner').style.display = 'none';
+                if(isError) {
+                    notif.style.background = 'rgba(220, 53, 69, 0.9)'; // แดง
+                }
             }
-            container.appendChild(toast);
-            return toast;
+
+            if (activeTasks === 0) {
+                setTimeout(() => {
+                    notif.style.animation = 'slideOutRight 0.3s ease-out forwards';
+                    setTimeout(() => { 
+                        notif.style.display = 'none'; 
+                        notif.style.animation = 'slideInRight 0.3s ease-out';
+                    }, 300);
+                }, successMsg ? 2000 : 0); // ค้างไว้ 2 วิถ้ามีข้อความสำเร็จ
+            }
         }
 
         // ==========================================
-        // ระบบ BLUETOOTH PRINTER (Auto-Reconnect)
+        // ระบบ BLUETOOTH
         // ==========================================
         async function connectBluetooth() {
             try {
-                printDevice = await navigator.bluetooth.requestDevice({
+                const device = await navigator.bluetooth.requestDevice({
                     acceptAllDevices: true,
                     optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2', '49535343-fe7d-4ae5-8fa9-9fafd205e455']
                 });
-                printDevice.addEventListener('gattserverdisconnected', onDisconnected);
-                await connectToPrinter();
+                
+                const server = await device.gatt.connect();
+                const services = await server.getPrimaryServices();
+                
+                for (const service of services) {
+                    const characteristics = await service.getCharacteristics();
+                    for (const char of characteristics) {
+                        if (char.properties.write || char.properties.writeWithoutResponse) {
+                            printCharacteristic = char;
+                            const btn = document.getElementById('btn-bt-connect');
+                            btn.innerText = '✅ เชื่อมต่อแล้ว (' + device.name + ')';
+                            btn.style.background = '#28a745';
+                            return;
+                        }
+                    }
+                }
+                alert('ไม่พบช่องทางการพิมพ์บนอุปกรณ์นี้');
             } catch (error) {
                 console.error(error);
                 alert('การเชื่อมต่อล้มเหลว: ' + error.message);
             }
         }
 
-        async function connectToPrinter() {
-            const server = await printDevice.gatt.connect();
-            const services = await server.getPrimaryServices();
-            for (const service of services) {
-                const characteristics = await service.getCharacteristics();
-                for (const char of characteristics) {
-                    if (char.properties.write || char.properties.writeWithoutResponse) {
-                        printCharacteristic = char;
-                        const btn = document.getElementById('btn-bt-connect');
-                        btn.innerText = '✅ เชื่อมต่อแล้ว (' + printDevice.name + ')';
-                        btn.style.background = '#28a745';
-                        return;
-                    }
-                }
-            }
-            throw new Error('ไม่พบช่องทางการพิมพ์บนอุปกรณ์นี้');
-        }
-
-        function onDisconnected() {
-            console.warn('Bluetooth เข้าสู่โหมดสลีป');
-            const btn = document.getElementById('btn-bt-connect');
-            btn.innerText = '⚠️ พักการเชื่อมต่อ';
-            btn.style.background = '#f39c12';
-        }
-
-        async function checkAndReconnectBluetooth() {
-            if (!printDevice) {
-                alert('กรุณากดปุ่ม 🔵 เชื่อมต่อเครื่องปริ้น ที่มุมขวาบนก่อนครับ');
-                return false;
-            }
-            if (!printDevice.gatt.connected) {
-                const btn = document.getElementById('btn-bt-connect');
-                btn.innerText = '⏳ กำลังปลุกเครื่องปริ้น...';
-                btn.style.background = '#007BFF';
-                try {
-                    await connectToPrinter();
-                } catch (e) {
-                    alert('เครื่องปริ้นหลุดการเชื่อมต่อ กรุณากดปุ่มเพื่อเชื่อมต่อใหม่ครับ');
-                    btn.innerText = '🔴 ขาดการเชื่อมต่อ';
-                    btn.style.background = '#dc3545';
-                    return false;
-                }
-            }
-            return true;
-        }
-
+        // ==========================================
+        // ฟังก์ชันแปลงภาพเป็นคำสั่งปริ้น พร้อมเงื่อนไขตัดกระดาษ
+        // ==========================================
         function convertCanvasToESCPOS(ctx, width, height, withCut = true) {
             const imgData = ctx.getImageData(0, 0, width, height).data;
             const xL = (width / 8) % 256;
@@ -344,13 +518,20 @@
                     bytes.push(byte);
                 }
             }
-            bytes.push(0x0A, 0x0A, 0x0A, 0x0A); 
-            if (withCut) { bytes.push(0x1D, 0x56, 0x41, 0x00); }
+            
+            // เลื่อนกระดาษ 4 บรรทัด (ให้พ้นใบมีด หรือให้ฉีกง่ายขึ้น)
+            bytes.push(0x0A); 
+            
+            // ถ้า withCut เป็น true ค่อยใส่คำสั่งตัดกระดาษ Full Cut (GS V 65 0 -> 0x1D 0x56 0x41 0x00)
+            if (withCut) {
+                bytes.push(0x1D, 0x56, 0x41, 0x00); 
+            }
+
             return new Uint8Array(bytes);
         }
 
         // ==========================================
-        // 1. ระบบปริ้นใบเสร็จ POS
+        // 1. ระบบปริ้นใบเสร็จ POS (เพิ่มความเร็ว)
         // ==========================================
         function loadImage(url) {
             return new Promise((resolve, reject) => {
@@ -363,12 +544,15 @@
         }
 
         async function printReceiptBluetooth(type) {
-            const isConnected = await checkAndReconnectBluetooth();
-            if (!isConnected) return;
+            if (!printCharacteristic) {
+                alert('กรุณากดปุ่ม 🔵 เชื่อมต่อเครื่องปริ้น ที่มุมขวาบนก่อนครับ');
+                return;
+            }
 
             const canvas = document.getElementById('receiptCanvas');
             canvas.height = 2000; 
             const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            
             ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = 'black';
@@ -416,35 +600,48 @@
             drawText('ราคา', 374, 'right', 'bold 24px sans-serif'); 
             y += 40;
 
+            // ==========================================
+            // ฟังก์ชันช่วยจัดการตัดข้อความขึ้นบรรทัดใหม่
+            // ==========================================
             function drawItemLine(nameText, priceText, nameX, priceX, yPos, maxWidth, font, isAddon = false) {
                 ctx.font = font;
+                
+                // พิมพ์ราคาชิดขวาที่บรรทัดแรกสุดเสมอ (ถ้ามีส่งราคามา)
                 if (priceText) {
                     ctx.textAlign = 'right';
                     ctx.fillText(priceText, priceX, yPos);
                 }
+                
                 ctx.textAlign = 'left';
                 let line = '';
                 let chars = [];
+                
+                // ใช้ Intl.Segmenter ป้องกันการตัดสระลอย หรือวรรณยุกต์ไทยขาดจากกัน
                 if (typeof Intl.Segmenter !== 'undefined') {
                     const segmenter = new Intl.Segmenter('th-TH', { granularity: 'grapheme' });
                     chars = [...segmenter.segment(nameText)].map(s => s.segment);
                 } else {
                     chars = nameText.split('');
                 }
+
+                // วนลูปเช็คความกว้างทีละตัวอักษร ถ้ายาวเกิน maxWidth ให้ขึ้นบรรทัดใหม่
                 for (let i = 0; i < chars.length; i++) {
                     let testLine = line + chars[i];
                     let metrics = ctx.measureText(testLine);
+                    
                     if (metrics.width > maxWidth && i > 0) {
                         ctx.fillText(line, nameX, yPos);
                         line = chars[i];
-                        yPos += (isAddon ? 32 : 35);
+                        yPos += (isAddon ? 32 : 35); // ปรับระยะบรรทัดใหม่
                     } else {
                         line = testLine;
                     }
                 }
                 ctx.fillText(line, nameX, yPos);
-                return yPos + (isAddon ? 32 : 35); 
+                return yPos + (isAddon ? 32 : 35); // รีเทิร์นค่าตำแหน่ง Y ถัดไป
             }
+
+            // ==========================================
 
             let total = 0, discount = 0;
             let printCart = {};
@@ -467,7 +664,11 @@
                 const item = printCart[key];
                 const itemNameStr = `x${item.qty} ${item.name}` + (item.isFree ? ' (ฟรี)' : '');
                 const priceStr = `${item.price * item.qty}฿`;
+
+                // พิมพ์ชื่อเมนูและราคา (ตั้งความกว้างชื่อเมนูไว้ที่ 260px เพื่อเว้นที่ให้ราคาด้านขวา)
                 y = drawItemLine(itemNameStr, priceStr, 10, 374, y, 260, 'bold 26px sans-serif', false);
+
+                // พิมพ์แอดออน (ตั้งกว้างสุดที่ 320px เพราะไม่มีราคาอยู่บรรทัดเดียวกัน)
                 item.addons.forEach(addon => {
                     y = drawItemLine(`+ ${addon}`, "", 35, 374, y, 320, '24px sans-serif', true);
                 });
@@ -493,7 +694,7 @@
             try {
                 if (type === 'shop') saveOrderAndFinish();
 
-                const loadingToast = showToast("กำลังปริ้นใบเสร็จ...");
+                showBackgroundTask("กำลังปริ้นใบเสร็จ...");
                 const shouldCut = (type === 'shop'); 
                 const escposData = convertCanvasToESCPOS(ctx, 384, y, shouldCut);
                 
@@ -501,19 +702,21 @@
                 for (let i = 0; i < escposData.length; i += CHUNK_SIZE) {
                     await printCharacteristic.writeValue(escposData.slice(i, i + CHUNK_SIZE));
                 }
-                loadingToast.remove();
+                hideBackgroundTask();
             } catch (e) {
-                showToast("ปริ้นล้มเหลว", 'error');
+                hideBackgroundTask("ปริ้นล้มเหลว", true);
             }
         }
 
         // ==========================================
-        // 2. ระบบปริ้นโค้ดสะสมแต้ม (Supabase)
+        // 2. ระบบปริ้นโค้ดสะสมแต้ม
         // ==========================================
         function generatePointButtons() {
+            // ปุ่มแผงด้านล่างซ้าย
             const grid = document.getElementById('point-button-grid');
             if(grid) grid.innerHTML = '';
             
+            // ปุ่มในหน้าต่าง Payment
             const paymentGrid = document.getElementById('payment-point-grid');
             if (paymentGrid) {
                 const titleElement = paymentGrid.querySelector('.payment-point-title');
@@ -522,6 +725,7 @@
             }
 
             for (let i = 1; i <= 10; i++) {
+                // สำหรับล่างซ้าย (ใส่คำว่า "แก้ว")
                 if(grid) {
                     let btn = document.createElement('button');
                     btn.className = 'cup-btn';
@@ -529,6 +733,8 @@
                     btn.onclick = () => requestPointPrint(i);
                     grid.appendChild(btn);
                 }
+
+                // สำหรับ Payment (ใส่แค่ตัวเลขเพื่อประหยัดที่)
                 if(paymentGrid) {
                     let quickBtn = document.createElement('button');
                     quickBtn.className = 'payment-point-btn';
@@ -539,10 +745,12 @@
             }
         }
 
-        async function requestPointPrint(cups) {
-            const isConnected = await checkAndReconnectBluetooth();
-            if (!isConnected) return;
-
+async function requestPointPrint(cups) {
+            if (!printCharacteristic) {
+                alert("กรุณาเชื่อมต่อเครื่องปริ้นที่ปุ่มสีน้ำเงินด้านบนก่อนครับ!");
+                return;
+            }
+            
             const loadingToast = showToast(`กำลังตรวจสอบและสร้างโค้ด ${cups} แก้ว... 🍵`);
             
             function generateRandomString(length) {
@@ -554,6 +762,7 @@
                 return result;
             }
 
+            // คำนวณวันหมดอายุ +30 วัน (คำนวณครั้งเดียวพอ)
             const expDate = new Date();
             expDate.setDate(expDate.getDate() + 30);
             const dd = ("0" + expDate.getDate()).slice(-2);
@@ -565,52 +774,72 @@
             let finalCode = "";
 
             try {
+                // ลูปพยายามสร้างและบันทึกโค้ด (จำกัดไม่เกิน 5 รอบเพื่อป้องกันแอพค้างหากเน็ตพัง)
                 let attempts = 0;
                 while (!isSaved && attempts < 5) {
                     attempts++;
+                    
+                    // 1. สุ่มรหัสใหม่ 10 หลักแรก + 2 หลักท้าย
                     const random10 = generateRandomString(10);
                     const cupsStr = ("0" + cups).slice(-2);
                     const code = `${random10}${cupsStr}`;
                     
-                    const payload = { code: code, cups: cups, expiry_date: expiryDate };
+                    const payload = {
+                        code: code,
+                        cups: cups,
+                        expiry_date: expiryDate
+                    };
 
+                    // 2. ลองยิงเข้า Supabase (ถ้าคุณตั้ง Unique Constraint ไว้ ถ้าซ้ำมันจะ Error 409)
                     const response = await fetch(`${SUPABASE_URL}/rest/v1/point_codes`, {
                         method: 'POST',
                         headers: {
                             'apikey': SUPABASE_KEY,
                             'Authorization': `Bearer ${SUPABASE_KEY}`,
                             'Content-Type': 'application/json',
-                            'Prefer': 'return=minimal' 
+                            'Prefer': 'return=minimal' // ไม่ต้องรับ data กลับมา
                         },
                         body: JSON.stringify(payload)
                     });
 
                     if (response.ok) {
+                        // บันทึกสำเร็จ (ไม่ซ้ำ)
                         isSaved = true;
                         finalCode = code;
                     } else if (response.status === 409) {
-                        console.warn(`โค้ดซ้ำ กำลังสุ่มใหม่...`);
+                        // Status 409 หมายถึง Conflict (ข้อมูลซ้ำ) ระบบจะรันลูป while ใหม่อีกรอบเพื่อสุ่มใหม่
+                        console.warn(`โค้ด ${code} ซ้ำ! กำลังสุ่มใหม่...`);
                     } else {
+                        // Error อื่นๆ เช่น อินเทอร์เน็ตหลุด, API คีย์ผิด
                         throw new Error(`Supabase Error: ${response.status}`);
                     }
                 }
 
+                // ออกจากลูปแล้ว เช็คว่าบันทึกสำเร็จจริงหรือไม่
                 if (isSaved) {
                     loadingToast.innerText = `สร้างโค้ดสำเร็จ กำลังปริ้น... 🖨️`;
-                    handlePointPrint({ code: finalCode, cups: cups, expiryDate: expiryDate }, loadingToast);
+                    
+                    // เรียกฟังก์ชันวาดรูปลงกระดาษ
+                    handlePointPrint({
+                        code: finalCode,
+                        cups: cups,
+                        expiryDate: expiryDate 
+                    }, loadingToast);
                 } else {
-                    throw new Error("ไม่สามารถสร้างรหัสที่ไม่ซ้ำได้");
+                    throw new Error("ไม่สามารถสร้างรหัสที่ไม่ซ้ำได้หลังจากพยายามหลายครั้ง");
                 }
+
             } catch (error) {
                 loadingToast.remove();
                 showToast(`ล้มเหลว: ${error.message}`, 'error');
             }
         }
-
-        async function handlePointPrint(data, loadingToast) {
+        async function handlePointPrint(data) {
             try {
+                showBackgroundTask("กำลังปริ้นโค้ดแต้ม...");
                 const canvas = document.getElementById('receiptCanvas');
                 canvas.height = 800; 
+                
                 const ctx = canvas.getContext('2d', { willReadFrequently: true });
                 ctx.fillStyle = 'white';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -650,23 +879,20 @@
                 y += 50; 
                 ctx.fillText('------------------------------', 192, y);
 
-                const escposData = convertCanvasToESCPOS(ctx, 384, y + 20, true); 
+                const escposData = convertCanvasToESCPOS(ctx, 384, y + 20, true);
+                
+                // === อัปเดตความเร็ว: ขยาย Chunk จาก 100 เป็น 512 ===
                 const CHUNK_SIZE = 512;
                 for (let i = 0; i < escposData.length; i += CHUNK_SIZE) {
                     await printCharacteristic.writeValue(escposData.slice(i, i + CHUNK_SIZE));
                 }
-                
-                loadingToast.className = 'toast success';
-                loadingToast.innerText = `ปริ้นโค้ดแต้ม ${data.cups} แก้ว เสร็จสิ้น ✅`;
-                setTimeout(() => loadingToast.remove(), 3000);
+                hideBackgroundTask("ปริ้นสำเร็จ");
             } catch (e) {
-                loadingToast.remove();
-                showToast(`ปริ้นแต้มล้มเหลว: ${e.message}`, 'error');
+                hideBackgroundTask("ปริ้นล้มเหลว", true);
             } 
         }
-
         // ==========================================
-        // 3. UI และ ฟังก์ชัน POS 
+        // 3. UI และ ฟังก์ชัน POS พื้นฐาน
         // ==========================================
         function renderAllMenus() {
             const container = document.getElementById('menu-list-container');
@@ -675,16 +901,15 @@
 
             cats.forEach((cat, index) => {
                 const section = document.createElement('div');
-                section.className = 'category-section' + (index === 0 ? '' : ' collapsed');
+                // กำหนดให้หมวดหมู่แรกเปิดไว้ ส่วนหมวดหมู่อื่นๆ ให้พับไว้แต่แรก (ถ้าอยากให้เปิดหมดเอา + (index === 0 ? '' : ' collapsed') ออก)
+                section.className = 'category-section' + (index === 0 ? '' : ' collapsed'); 
                 
-                const header = document.createElement('div');
-                header.className = 'category-title';
-                header.innerText = cat;
-                header.onclick = () => { section.classList.toggle('collapsed'); };
-                
-                const content = document.createElement('div');
-                content.className = 'category-content';
-                
+                // สั่ง toggle class 'collapsed' เมื่อคลิกที่ชื่อหมวดหมู่
+                section.innerHTML = `
+                    <div class="category-title" onclick="this.parentElement.classList.toggle('collapsed')">
+                        <span>${cat}</span>
+                    </div>`;
+                    
                 const grid = document.createElement('div');
                 grid.className = 'menu-grid';
 
@@ -697,9 +922,7 @@
                     grid.appendChild(div);
                 });
 
-                content.appendChild(grid);
-                section.appendChild(header);
-                section.appendChild(content);
+                section.appendChild(grid);
                 container.appendChild(section);
             });
         }
@@ -713,7 +936,7 @@
             }
         }
 
-        function openAddonModal(item) {
+function openAddonModal(item) {
             document.getElementById('addon-modal-title').innerText = item.name;
             const body = document.getElementById('addon-modal-body');
             body.innerHTML = '';
@@ -722,17 +945,23 @@
                 const addon = appData.addons[aId];
                 if (addon) {
                     const group = document.createElement('div');
+                    // กำหนดให้แอดออนกลุ่มแรก 'เปิด' เสมอ ส่วนกลุ่มอื่นๆ ให้ 'พับไว้' เพื่อประหยัดพื้นที่
+                    // ถ้าต้องการให้เปิดทั้งหมดตั้งแต่แรก ให้แก้เป็น: group.className = 'addon-group';
                     group.className = 'addon-group' + (index === 0 ? '' : ' collapsed');
                     
+                    // สร้างแถบส่วนหัวสำหรับกดพับ/ขยาย
                     const header = document.createElement('div');
                     header.className = 'addon-group-header';
                     header.innerText = addon.name;
+                    // เมื่อกดที่หัวข้อ ให้สลับคลาส 'collapsed' เพื่อซ่อน/แสดงเนื้อหา
                     header.onclick = () => group.classList.toggle('collapsed');
                     
+                    // สร้างพื้นที่บรรจุตัวเลือก
                     const content = document.createElement('div');
                     content.className = 'addon-group-content';
                     
                     addon.options.forEach(opt => {
+                        // ใช้ <label> ครอบเนื้อหาทั้งหมด เพื่อให้ผู้ใช้กดตรงไหนก็ได้ในกรอบ
                         const optLabel = document.createElement('label');
                         optLabel.className = 'addon-option';
                         optLabel.innerHTML = `
@@ -775,12 +1004,11 @@
             cart.forEach((item, index) => {
                 let itemTotal = item.price;
                 let addonText = '';
-                if(item.selectedAddons){
-                    item.selectedAddons.forEach(a => {
-                        itemTotal += a.price;
-                        addonText += `+ ${a.name} `;
-                    });
-                }
+                item.selectedAddons.forEach(a => {
+                    itemTotal += a.price;
+                    addonText += `+ ${a.name} `;
+                });
+
                 if(item.isFree) discount += itemTotal; else total += itemTotal;
 
                 list.innerHTML += `
@@ -800,7 +1028,6 @@
             document.getElementById('discount-display').innerText = discount + '฿';
             document.getElementById('total-display').innerText = total + '฿';
             updateCustomerDisplay(total, discount);
-            list.scrollTop = list.scrollHeight;
         }
 
         function openFreeCupModal() {
@@ -844,16 +1071,6 @@
             localStorage.setItem('pos_state', JSON.stringify(state));
         }
 
-        function closePaymentModal() {
-            document.getElementById('payment-modal').style.display = 'none';
-            document.getElementById('print-controls').style.display = 'none';
-            currentPaymentMethod = '';
-            
-            let state = JSON.parse(localStorage.getItem('pos_state')) || { cart:[], total:0, discount:0 };
-            state.showQR = false;
-            localStorage.setItem('pos_state', JSON.stringify(state));
-        }
-
         function processPayment(method) {
             currentPaymentMethod = method;
             document.getElementById('print-controls').style.display = 'block';
@@ -865,7 +1082,7 @@
             }
         }
 
-        async function saveOrderAndFinish() {
+async function saveOrderAndFinish() {
             let total = 0;
             cart.forEach(item => {
                 let itemTotal = item.price;
@@ -874,9 +1091,12 @@
             });
 
             const savedOrderId = currentOrderId;
+            
+            // สร้างวันที่รูปแบบ dd/mm/yyyy
             const d = new Date();
             const dateStr = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`;
 
+            // รูปแบบข้อมูลที่ตรงกับตาราง pos_orders ใน Supabase
             const payload = { 
                 order_id: savedOrderId, 
                 date_str: dateStr, 
@@ -884,13 +1104,16 @@
                 payment_method: currentPaymentMethod 
             };
 
+            // 1. เคลียร์ตะกร้า ปิดหน้าต่าง เตรียมรับลูกค้าคนต่อไปทันที
             currentOrderId++;
             cart = [];
             renderCart();
-            closePaymentModal();
+            closeModal('payment-modal');
 
+            // 2. แสดง Toast
             const loadingToast = showToast(`กำลังบันทึกออเดอร์ #${savedOrderId}...`);
 
+            // 3. ยิงข้อมูลเข้า Supabase โดยตรง (เสร็จในหลักมิลลิวินาที)
             try {
                 const response = await fetch(`${SUPABASE_URL}/rest/v1/pos_orders`, {
                     method: 'POST',
@@ -898,7 +1121,7 @@
                         'apikey': SUPABASE_KEY,
                         'Authorization': `Bearer ${SUPABASE_KEY}`,
                         'Content-Type': 'application/json',
-                        'Prefer': 'return=minimal'
+                        'Prefer': 'return=minimal' // บอกให้ Supabase บันทึกเสร็จแล้วไม่ต้องส่งข้อมูลกลับมา (ประหยัดเน็ต)
                     },
                     body: JSON.stringify(payload)
                 });
@@ -914,89 +1137,127 @@
             }
         }
 
-        // ==========================================
-        // ระบบพักบิล
-        // ==========================================
-        function holdOrder() {
-            if (cart.length === 0) return alert('ไม่มีรายการในตะกร้า');
-            const holdTime = new Date();
-            const timeStr = String(holdTime.getHours()).padStart(2, '0') + ':' + String(holdTime.getMinutes()).padStart(2, '0');
-            
-            let summary = cart.map(item => item.name).join(', ');
-            if(summary.length > 35) summary = summary.substring(0, 35) + '...';
-
-            heldOrders.push({ time: timeStr, cart: JSON.parse(JSON.stringify(cart)), summary: summary, totalItems: cart.length });
-            saveHeldOrders();
-            cart = [];
-            renderCart();
-            showToast('พักบิลเรียบร้อยแล้ว เตรียมรับออเดอร์ใหม่ได้เลย', 'success');
-        }
-
-        function saveHeldOrders() {
-            localStorage.setItem('heldOrders', JSON.stringify(heldOrders));
-            updateHeldOrdersCount();
-        }
-
-        function updateHeldOrdersCount() {
-            document.getElementById('held-count').innerText = `(${heldOrders.length})`;
-        }
-
-        function openHeldOrdersModal() {
-            renderHeldOrdersList();
-            document.getElementById('held-orders-modal').style.display = 'flex';
-        }
-
-        function renderHeldOrdersList() {
-            const list = document.getElementById('held-orders-list');
-            list.innerHTML = '';
-            if (heldOrders.length === 0) {
-                list.innerHTML = '<div style="text-align:center; color:#aaa; padding: 20px;">ไม่มีบิลที่ถูกพักไว้</div>';
-                return;
-            }
-
-            heldOrders.forEach((order, index) => {
-                list.innerHTML += `
-                    <div class="held-order-item">
-                        <div class="held-order-info">
-                            <div style="font-weight: bold; color: var(--secondary);">เวลาพักบิล: ${order.time}</div>
-                            <div style="font-size: 0.9em; color: #bbb; margin-top: 5px;">${order.totalItems} แก้ว | ${order.summary}</div>
-                        </div>
-                        <div class="held-order-actions">
-                            <button class="btn-secondary" style="padding: 8px 12px; font-size: 1em; margin:0;" onclick="resumeOrder(${index})">เรียกคืน</button>
-                            <button class="btn-delete" style="padding: 8px 12px; font-size: 1em; margin: 0;" onclick="deleteHeldOrder(${index})">ลบ</button>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        function resumeOrder(index) {
-            if (cart.length > 0) {
-                const confirmHold = confirm("ตะกร้าปัจจุบันมีสินค้าอยู่ ต้องการพักบิลปัจจุบันก่อนเรียกคืนหรือไม่?\n(กด OK เพื่อพักบิลปัจจุบัน | กด Cancel เพื่อเขียนทับ)");
-                if (confirmHold) holdOrder();
-            }
-            cart = heldOrders[index].cart;
-            heldOrders.splice(index, 1);
-            saveHeldOrders();
-            renderCart();
-            closeModal('held-orders-modal');
-            showToast('เรียกคืนบิลสำเร็จ พร้อมชำระเงิน', 'success');
-        }
-
-        function deleteHeldOrder(index) {
-            if (confirm("ต้องการลบใบบิลที่พักไว้นี้ทิ้งใช่หรือไม่?")) {
-                heldOrders.splice(index, 1);
-                saveHeldOrders();
-                renderHeldOrdersList();
-            }
-        }
-
         function updateCustomerDisplay(total = 0, discount = 0) {
             const state = { cart, total, discount, showQR: false };
             localStorage.setItem('pos_state', JSON.stringify(state));
         }
 
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        function closePaymentModal() {
+            // ปิดหน้าต่าง Payment
+            document.getElementById('payment-modal').style.display = 'none';
+            
+            // ซ่อนปุ่มปริ้นและล้างค่าวิธีชำระเงิน
+            document.getElementById('print-controls').style.display = 'none';
+            currentPaymentMethod = '';
+            
+            // อัปเดตจอลูกค้า (บังคับซ่อน QR Code ทันที)
+            let state = JSON.parse(localStorage.getItem('pos_state')) || { cart:[], total:0, discount:0 };
+            state.showQR = false;
+            localStorage.setItem('pos_state', JSON.stringify(state));
+        }
+
+        // ==========================================
+        // ระบบพักบิล (Hold Orders) ลง LocalStorage 
+        // (ปิดเว็บเปิดใหม่ข้อมูลบิลที่พักไว้ก็ไม่หาย)
+        // ==========================================
+        let heldOrders = JSON.parse(localStorage.getItem('heldOrders')) || [];
+
+        // อัปเดตตัวเลขแจ้งเตือนบนปุ่ม
+        function updateHeldCount() {
+            const countSpan = document.getElementById('held-count');
+            if(countSpan) countSpan.innerText = heldOrders.length;
+        }
+
+        // โหลดตัวเลขตั้งแต่เปิดหน้าเว็บ (เอาไปใส่ใน window.onload หรือเรียกตรงนี้ก็ได้)
+        setTimeout(updateHeldCount, 500);
+
+        function holdCurrentOrder() {
+            if (cart.length === 0) return showToast('ไม่มีรายการในตะกร้าสำหรับพักบิล', 'error');
+            
+            // ให้พนักงานตั้งชื่อบิลเพื่อกันลืม (ค่าเริ่มต้นเป็นเวลาปัจจุบัน)
+            const orderName = prompt('ระบุชื่อลูกค้า, ป้ายทะเบียน, หรือเบอร์โต๊ะ (เพื่อจำง่าย):', `คิวเวลา ${new Date().toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'})}`);
+            if (orderName === null) return; // กดยกเลิก
+
+            // สร้าง Object เก็บข้อมูล
+            const newHeldOrder = {
+                id: Date.now(),
+                name: orderName || 'ไม่ระบุชื่อ',
+                cart: [...cart] // คัดลอกข้อมูลตะกร้าปัจจุบัน
+            };
+            
+            // บันทึกลง Array และ LocalStorage
+            heldOrders.push(newHeldOrder);
+            localStorage.setItem('heldOrders', JSON.stringify(heldOrders));
+
+            // เคลียร์ตะกร้าหน้าจอเพื่อรับลูกค้าใหม่
+            cart = [];
+            renderCart();
+            updateHeldCount();
+            showToast('พักบิลเรียบร้อยแล้ว', 'success');
+        }
+
+        function openHeldOrdersModal() {
+            const listDiv = document.getElementById('held-orders-list');
+            listDiv.innerHTML = '';
+            
+            if (heldOrders.length === 0) {
+                listDiv.innerHTML = '<p style="text-align:center; color:#888; font-size:1.2em; margin-top:30px;">ไม่มีบิลที่พักไว้</p>';
+            } else {
+                heldOrders.forEach((order, index) => {
+                    // คำนวณยอดรวมของบิลที่พักไว้
+                    let total = 0;
+                    order.cart.forEach(item => {
+                        let itemTotal = item.price;
+                        item.selectedAddons.forEach(a => itemTotal += a.price);
+                        if(!item.isFree) total += itemTotal;
+                    });
+
+                    listDiv.innerHTML += `
+                        <div class="held-order-item">
+                            <div>
+                                <div class="held-order-info-title">${order.name}</div>
+                                <div class="held-order-info-detail">จำนวน ${order.cart.length} รายการ | รวม ${total}฿</div>
+                            </div>
+                            <div style="display:flex; gap:10px;">
+                                <button class="btn-main" style="padding: 10px 15px; font-size:1em;" onclick="resumeOrder(${index})">📝 ทำต่อ</button>
+                                <button class="btn-delete" style="padding: 10px 15px; margin: 0; font-size:1em;" onclick="deleteHeldOrder(${index})">🗑️ ลบ</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            document.getElementById('held-orders-modal').style.display = 'flex';
+        }
+
+        function resumeOrder(index) {
+            if (cart.length > 0) {
+                const confirmReplace = confirm('ตะกร้าปัจจุบันมีสินค้าอยู่ หากดึงบิลเก่ามา สินค้าในตะกร้าปัจจุบันจะหายไป ต้องการทำต่อหรือไม่? (แนะนำให้กด "พักบิล" ปัจจุบันก่อน)');
+                if (!confirmReplace) return;
+            }
+            
+            // โหลดตะกร้ากลับมา
+            cart = [...heldOrders[index].cart];
+            
+            // ลบบิลนี้ออกจากรายการที่พักไว้
+            heldOrders.splice(index, 1);
+            localStorage.setItem('heldOrders', JSON.stringify(heldOrders));
+
+            renderCart();
+            updateHeldCount();
+            closeModal('held-orders-modal');
+            showToast('ดึงบิลกลับมาแก้ไขสำเร็จ', 'success');
+        }
+
+        function deleteHeldOrder(index) {
+            if(confirm('ต้องการลบบิลที่พักไว้นี้ทิ้งถาวรใช่หรือไม่?')) {
+                heldOrders.splice(index, 1);
+                localStorage.setItem('heldOrders', JSON.stringify(heldOrders));
+                openHeldOrdersModal(); // รีเฟรชหน้าต่าง
+                updateHeldCount();
+            }
+        }
     </script>
 </body>
 </html>
