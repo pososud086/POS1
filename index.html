@@ -27,18 +27,23 @@
         .menu-list-container::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
 
         .category-title {
+            font-size: 1.2em;      /* ปรับขนาดฟอนต์ให้เท่ากับเมนู */
+            font-weight: bold;     /* ทำให้ตัวหนาเหมือนชื่อเมนู */
+            color: var(--secondary); /* สีส้มของหมวดหมู่ */
             cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
             user-select: none;
             transition: color 0.3s;
+            margin-bottom: 15px;   /* ระยะห่างด้านล่าง */
+            border-bottom: 2px solid #333; /* เส้นใต้คั่นหมวดหมู่ */
+            padding-bottom: 5px;   /* ระยะห่างระหว่างตัวหนังสือกับเส้นใต้ */
         }
         .category-title:hover { color: var(--text); }
         .category-title::after {
             content: '▼';
-            font-size: 1.5em;
-            font-weight: bold;
+            font-size: 0.8em;
             transition: transform 0.3s ease;
         }
         .category-section.collapsed .category-title::after {
